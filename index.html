@@ -327,7 +327,7 @@ body.authed #gate{display:none}
   <section id="mine">
     <div class="sec-head"><div><h2>Mes gardes</h2><div class="sub" id="mineSub"></div></div></div>
 
-    <!-- M'inscrire sur un poste -->
+    <!-- M'inscrire -->
     <div class="card">
       <div class="signup-as">
         <div class="av" id="signupAv"></div>
@@ -338,45 +338,39 @@ body.authed #gate{display:none}
         </div>
       </div>
       <div class="err" id="addErr"></div>
-      <div class="field"><label>Sur quel poste ?</label><select id="gRole"></select></div>
-      <div class="field" id="gDateSingleWrap"><label>Quel jour ?</label><input type="date" id="gDate"></div>
-      <div class="field" id="gDateRangeWrap" style="display:none">
-        <label>Du → au (astreinte sur plusieurs jours)</label>
-        <div style="display:flex;gap:8px">
-          <input type="date" id="gDebut" style="flex:1">
-          <input type="date" id="gFin" style="flex:1">
+
+      <div class="field">
+        <label>Type</label>
+        <div class="seg" id="gTypeToggle">
+          <button class="on" data-v="garde">🌙 Garde</button>
+          <button data-v="astreinte">📟 Astreinte</button>
         </div>
       </div>
-      <div class="field"><label>Note (optionnel)</label><input id="gNote" placeholder="Ex : 2e ligne, bip 4521…"></div>
-      <button class="btn" id="gAdd">M'inscrire sur ce poste</button>
+
+      <div class="field" id="gDateSingleWrap">
+        <label>Quel jour ?</label>
+        <input type="date" id="gDate">
+      </div>
+
+      <div class="field" id="gDateRangeWrap" style="display:none">
+        <label>Début de l'astreinte</label>
+        <input type="date" id="gDebut" style="margin-bottom:10px">
+        <label>Fin de l'astreinte</label>
+        <input type="date" id="gFin">
+      </div>
+
+      <div class="field">
+        <label>Note (optionnel)</label>
+        <input id="gNote" placeholder="Ex : 2e ligne, bip 4521…">
+      </div>
+
+      <button class="btn" id="gAdd">M'inscrire</button>
     </div>
 
     <!-- Mes prochaines gardes -->
-    <div class="card" id="mineListCard">
+    <div class="card">
       <div class="spec-title">Mes prochaines gardes<span class="ln"></span></div>
       <div id="mineList"></div>
-    </div>
-
-    <!-- Gérer les rôles (replié par défaut) -->
-    <div class="card">
-      <div class="collapse-head" id="roleManageHead">
-        <span>⚙️ Gérer les postes de <span id="roleSpecName" style="color:var(--ink)"></span></span>
-        <span class="chev">▾</span>
-      </div>
-      <div class="collapse-body" id="roleManageBody">
-        <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5">Définis ici les postes de ton service (garde de nuit, astreinte, avis, consultations…). Ils sont partagés par tous les membres de ta spécialité, à créer une seule fois.</p>
-        <div class="err" id="roleErr"></div>
-        <div id="roleList" style="margin-bottom:14px"></div>
-        <div class="field"><label>Nom du nouveau poste</label><input id="newRoleNom" placeholder="Ex : Garde de nuit, Avis…"></div>
-        <div class="field"><label>Type de couverture</label>
-          <div class="seg" id="newRoleType">
-            <button class="on" data-v="garde">🌙 Garde</button>
-            <button data-v="astreinte">📟 Astreinte</button>
-            <button data-v="jour">☀️ Jour</button>
-          </div>
-        </div>
-        <button class="btn ghost" id="addRoleBtn">Ajouter ce poste</button>
-      </div>
     </div>
   </section>
   <!-- MON COMPTE -->
@@ -520,20 +514,6 @@ const DB = {
     if(sb){const d=await this._rpc("get_annuaire",{p_token:SESSION_TOKEN});return Array.isArray(d)?d:[];}
     return [...demo.medecins].map(({pin,...r})=>r).sort((a,b)=>a.nom.localeCompare(b.nom));
   },
-  async roles(){
-    if(sb){const d=await this._rpc("get_roles",{p_token:SESSION_TOKEN,p_specialite:state.user.specialite});return Array.isArray(d)?d:[];}
-    return demo.roles.filter(r=>r.specialite===state.user.specialite);
-  },
-  async ajouterRole(nom,type){
-    if(sb)return this._rpc("ajouter_role",{p_token:SESSION_TOKEN,p_nom:nom,p_type:type});
-    if(demo.roles.some(r=>r.specialite===state.user.specialite&&r.nom.toLowerCase()===nom.toLowerCase()))return{ok:false,error:"Ce rôle existe déjà"};
-    demo.roles.push({id:"r"+Date.now(),specialite:state.user.specialite,nom,type});return{ok:true};
-  },
-  async supprimerRole(id){
-    if(sb)return this._rpc("supprimer_role",{p_token:SESSION_TOKEN,p_role_id:id});
-    if(demo.affectations.some(a=>a.role_id===id))return{ok:false,error:"Des affectations utilisent ce rôle"};
-    demo.roles=demo.roles.filter(r=>r.id!==id);return{ok:true};
-  },
   async affectations(start,end){
     if(sb){const d=await this._rpc("get_affectations",{p_token:SESSION_TOKEN,p_start:start,p_end:end});return Array.isArray(d)?d:[];}
     return demo.affectations.filter(a=>!(a.date_fin<start||a.date_debut>end)).map(a=>{
@@ -541,9 +521,12 @@ const DB = {
       const r=demo.roles.find(x=>x.id===a.role_id)||{};
       return {...a,nom:m.nom,grade:m.grade,telephone:m.telephone,role_nom:r.nom,role_type:r.type};});
   },
-  async inscrire(roleId,debut,fin,note){
-    if(sb)return this._rpc("inscrire_affectation",{p_token:SESSION_TOKEN,p_role_id:roleId,p_debut:debut,p_fin:fin,p_note:note});
-    demo.affectations.push({id:"a"+Date.now(),medecin_id:state.user.id,specialite:state.user.specialite,role_id:roleId,date_debut:debut,date_fin:fin,note});return{ok:true};
+  async inscrire(type,debut,fin,note){
+    if(sb)return this._rpc("inscrire_simple",{p_token:SESSION_TOKEN,p_type:type,p_debut:debut,p_fin:fin,p_note:note});
+    // demo : trouver ou créer le rôle automatiquement
+    let r=demo.roles.find(x=>x.specialite===state.user.specialite&&x.type===type);
+    if(!r){r={id:"r"+Date.now(),specialite:state.user.specialite,nom:type==="garde"?"Garde":"Astreinte",type};demo.roles.push(r);}
+    demo.affectations.push({id:"a"+Date.now(),medecin_id:state.user.id,specialite:state.user.specialite,role_id:r.id,date_debut:debut,date_fin:fin,note:note||null});return{ok:true};
   },
   async supprimer(id){
     if(sb)return this._rpc("supprimer_affectation",{p_token:SESSION_TOKEN,p_id:id});
@@ -573,7 +556,7 @@ const DB = {
    3) ÉTAT + HELPERS
    ==================================================================== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={user:null,tab:"today",sel:new Date(),cal:new Date(),newRoleType:"garde",myRoles:[],
+const state={user:null,tab:"today",sel:new Date(),cal:new Date(),gType:"garde",
              todayFilter:"all",dirFilter:"all",annuaire:[],monthGardes:[],dayGardes:[]};
 
 const ISO=d=>{const x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
@@ -764,66 +747,42 @@ function applyDirFilter(){
 async function renderMine(){
   if(!state.user)return;
   $("#mineSub").textContent=state.user.nom+" · "+state.user.specialite;
-  $("#roleSpecName").textContent=state.user.specialite;
   $("#signupAv").textContent=initials(state.user.nom);
   $("#signupNom").textContent=state.user.nom;
   $("#signupSpec").textContent=state.user.specialite;
   if(!$("#gDate").value)$("#gDate").value=ISO(state.sel);
-  // charger les rôles de ma spécialité
-  state.myRoles=await DB.roles();
-  renderRoleSelect();
-  renderRoleList();
-  // mes affectations à venir
+  if(!$("#gDebut").value)$("#gDebut").value=ISO(state.sel);
+  if(!$("#gFin").value)$("#gFin").value=ISO(state.sel);
   const today=ISO(new Date());
   const all=await DB.affectations(today,"2100-01-01");
   const mine=all.filter(a=>a.medecin_id===state.user.id).sort((a,b)=>a.date_debut.localeCompare(b.date_debut));
   const box=$("#mineList");
-  if(!mine.length){box.innerHTML=`<p style="color:var(--faint);font-size:13.5px;padding:6px 0">Aucune affectation à venir.</p>`;return;}
+  if(!mine.length){box.innerHTML=`<p style="color:var(--faint);font-size:13.5px;padding:6px 0">Aucune garde à venir.</p>`;return;}
   box.innerHTML=mine.map(a=>{
-    const d1=new Date(a.date_debut+"T00:00:00");
-    const f=d=>d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
-    let dateLbl=f(d1);
-    if(a.date_debut!==a.date_fin){const d2=new Date(a.date_fin+"T00:00:00");dateLbl=`${f(d1)} → ${f(d2)}`;}
+    const f=d=>new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+    const dateLbl=a.date_debut===a.date_fin?f(a.date_debut):`${f(a.date_debut)} → ${f(a.date_fin)}`;
     return `<div class="mg-row">
-      <div><div class="d">${dateLbl}</div>
-      <div class="meta" style="font-size:12.5px;color:var(--muted)"><span class="tag t-${a.role_type}">${roleIcon(a.role_type)} ${a.role_nom}</span>${a.note?` · ${a.note}`:''}</div></div>
-      <button class="x" data-id="${a.id}">✕</button></div>`;
+      <div>
+        <div class="d">${dateLbl}</div>
+        <div class="meta" style="font-size:12.5px;color:var(--muted)">
+          <span class="tag t-${a.role_type}">${roleIcon(a.role_type)} ${a.role_type==="garde"?"Garde":"Astreinte"}</span>${a.note?` · ${a.note}`:""}
+        </div>
+      </div>
+      <button class="x" data-id="${a.id}">✕</button>
+    </div>`;
   }).join('');
   box.querySelectorAll(".x").forEach(b=>b.onclick=()=>delGarde(b.dataset.id));
 }
-function renderRoleSelect(){
-  const sel=$("#gRole");
-  if(!state.myRoles.length){
-    sel.innerHTML=`<option value="">— Crée d'abord un rôle ci-dessous —</option>`;
-  }else{
-    sel.innerHTML=state.myRoles.map(r=>`<option value="${r.id}" data-type="${r.type}">${roleIcon(r.type)} ${r.nom}</option>`).join('');
-  }
-  toggleDateMode();
-}
 function toggleDateMode(){
-  const opt=$("#gRole").selectedOptions[0];
-  const type=opt?opt.getAttribute("data-type"):null;
-  const astreinte=type==="astreinte";
+  const astreinte=state.gType==="astreinte";
   $("#gDateSingleWrap").style.display=astreinte?"none":"block";
   $("#gDateRangeWrap").style.display=astreinte?"block":"none";
-  if(astreinte){if(!$("#gDebut").value)$("#gDebut").value=ISO(state.sel);if(!$("#gFin").value)$("#gFin").value=ISO(state.sel);}
-}
-function renderRoleList(){
-  const box=$("#roleList");
-  if(!state.myRoles.length){box.innerHTML=`<p style="color:var(--faint);font-size:12.5px">Aucun rôle défini pour ${state.user.specialite}.</p>`;return;}
-  box.innerHTML=state.myRoles.map(r=>`<div class="role-chip">
-    <span class="tag t-${r.type}">${roleIcon(r.type)} ${r.type}</span>
-    <span style="font-weight:600">${r.nom}</span>
-    <span class="rx" data-rid="${r.id}">✕</span></div>`).join('');
-  box.querySelectorAll(".rx").forEach(b=>b.onclick=()=>delRole(b.dataset.rid));
 }
 async function addGarde(){
   if(!state.user)return;
   const err=e=>{const el=$("#addErr");el.textContent=e;el.classList.add("show");};
   $("#addErr").classList.remove("show");
-  const opt=$("#gRole").selectedOptions[0];
-  if(!opt||!opt.value)return err("Choisis un rôle (ou crée-en un d'abord).");
-  const roleId=opt.value,type=opt.getAttribute("data-type"),note=$("#gNote").value.trim();
+  const type=state.gType,note=$("#gNote").value.trim();
   let debut,fin;
   if(type==="astreinte"){
     debut=$("#gDebut").value;fin=$("#gFin").value;
@@ -834,10 +793,10 @@ async function addGarde(){
     if(!debut)return err("Choisis une date.");
   }
   $("#gAdd").disabled=true;
-  const r=await DB.inscrire(roleId,debut,fin,note);
+  const r=await DB.inscrire(type,debut,fin,note);
   $("#gAdd").disabled=false;
   if(!r||!r.ok)return err((r&&r.error)||"Erreur");
-  $("#gNote").value="";toast("Affectation ajoutée");
+  $("#gNote").value="";toast("Garde ajoutée ✓");
   renderMine();
 }
 async function delGarde(id){
@@ -845,24 +804,7 @@ async function delGarde(id){
   if(!r||!r.ok)return toast((r&&r.error)||"Erreur");
   toast("Affectation supprimée");renderMine();
 }
-async function addRole(){
-  const err=e=>{const el=$("#roleErr");el.textContent=e;el.classList.add("show");};
-  $("#roleErr").classList.remove("show");
-  const nom=$("#newRoleNom").value.trim(),type=state.newRoleType;
-  if(nom.length<2)return err("Donne un nom au rôle.");
-  $("#addRoleBtn").disabled=true;
-  const r=await DB.ajouterRole(nom,type);
-  $("#addRoleBtn").disabled=false;
-  if(!r||!r.ok)return err((r&&r.error)||"Erreur");
-  $("#newRoleNom").value="";toast("Rôle ajouté");
-  renderMine();
-}
-async function delRole(id){
-  if(!confirm("Supprimer ce rôle ?"))return;
-  const r=await DB.supprimerRole(id);
-  if(!r||!r.ok)return toast((r&&r.error)||"Erreur");
-  toast("Rôle supprimé");renderMine();
-}
+
 
 /* ---- MON COMPTE ---- */
 function renderCompte(){
@@ -948,11 +890,10 @@ function bind(){
   $("#mPrev").onclick=()=>{state.cal.setMonth(state.cal.getMonth()-1);state.cal=new Date(state.cal);renderCal();};
   $("#mNext").onclick=()=>{state.cal.setMonth(state.cal.getMonth()+1);state.cal=new Date(state.cal);renderCal();};
   $("#dirSearch").oninput=applyDirFilter;
-  $("#roleManageHead").onclick=()=>{$("#roleManageHead").classList.toggle("open");$("#roleManageBody").classList.toggle("open");};
-  $("#gRole").onchange=toggleDateMode;
-  $("#newRoleType").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    state.newRoleType=b.dataset.v;
-    $("#newRoleType").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.v===state.newRoleType));
+  $("#gTypeToggle").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    state.gType=b.dataset.v;
+    $("#gTypeToggle").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.v===state.gType));
+    toggleDateMode();
   });
   $("#gAdd").onclick=addGarde;
   // ---- écran d'accueil (gate) ----
@@ -964,7 +905,6 @@ function bind(){
   $("#lPin").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
   document.addEventListener("click",e=>{
     if(e.target.id==="changePinBtn")doChangerPin();
-    if(e.target.id==="addRoleBtn")addRole();
     if(e.target.id==="saveSpecBtn")doChangerSpec();
     if(e.target.id==="saveTelBtn")doChangerTel();
     if(e.target.id==="logoutBtn")logout();
