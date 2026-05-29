@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0E6E63" />
+<title>PlanGarde — Gardes & annuaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================ THEME ============================ */
+:root{
+  --bg:#F6F5F0; --surface:#FFFFFF; --surface-2:#FBFAF6;
+  --ink:#16201F; --muted:#5C6B6A; --faint:#8A9896;
+  --primary:#0E6E63; --primary-ink:#0A554C; --primary-soft:#E2EFEC;
+  --service:#1A5276; --service-soft:#E6EEF4;
+  --urgences:#B83227; --urgences-soft:#FBE9E7;
+  --interne:#7A5CC0; --resident:#1A7A4A; --prof:#B07A12;
+  --border:#E6E3DB; --border-2:#D7D3C8;
+  --shadow:0 1px 2px rgba(20,32,31,.05),0 8px 24px -12px rgba(20,32,31,.18);
+  --radius:16px; --radius-sm:11px;
+}
+[data-theme="dark"]{
+  --bg:#0C1211; --surface:#141C1B; --surface-2:#101716;
+  --ink:#E9EEED; --muted:#9AA9A7; --faint:#71807E;
+  --primary:#2FB6A4; --primary-ink:#3FC9B6; --primary-soft:#123029;
+  --service:#5AA0D6; --service-soft:#13242F;
+  --urgences:#E8796C; --urgences-soft:#2E1714;
+  --interne:#A88EE8; --resident:#4FC585; --prof:#E0B45A;
+  --border:#23302E; --border-2:#2E3D3B;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 14px 30px -16px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+h1,h2,h3,.brand{font-family:"Bricolage Grotesque",sans-serif;letter-spacing:-.01em}
+a{color:inherit}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:15px}
+
+/* ============================ LAYOUT ============================ */
+.wrap{max-width:740px;margin:0 auto;padding:0 16px 120px}
+header.top{
+  position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.top-in{max-width:740px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.brand{font-weight:800;font-size:20px;display:flex;align-items:center;gap:9px;line-height:1}
+.brand .pulse{
+  width:26px;height:26px;border-radius:8px;background:var(--primary);
+  display:grid;place-items:center;color:#fff;font-size:15px;flex:none;
+  box-shadow:0 4px 12px -3px var(--primary);
+}
+.brand small{display:block;font-family:"IBM Plex Sans";font-weight:500;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.icon-btn{
+  width:38px;height:38px;border-radius:11px;border:1px solid var(--border);
+  background:var(--surface);display:grid;place-items:center;color:var(--muted);
+  transition:.15s;font-size:17px
+}
+.icon-btn:hover{color:var(--ink);border-color:var(--border-2)}
+.who{display:flex;align-items:center;gap:8px;padding:6px 7px 6px 12px;border-radius:30px;border:1px solid var(--border);background:var(--surface);font-size:13.5px;font-weight:600;max-width:190px}
+.who .avatar{width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.who .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-login{padding:9px 16px;border-radius:30px;background:var(--primary);color:#fff;font-weight:700;font-size:14px;transition:.15s;box-shadow:0 6px 16px -8px var(--primary)}
+.btn-login:hover{filter:brightness(1.06)}
+
+/* config banner */
+.banner{
+  margin:14px 0 0;padding:11px 14px;border-radius:var(--radius-sm);
+  background:var(--service-soft);border:1px solid var(--border);
+  font-size:12.5px;color:var(--muted);display:flex;gap:9px;align-items:flex-start;line-height:1.45
+}
+.banner b{color:var(--ink);font-weight:700}
+
+/* tabs */
+.tabs{display:flex;gap:4px;margin:16px 0 4px;background:var(--surface-2);border:1px solid var(--border);padding:4px;border-radius:14px}
+.tabs button{flex:1;padding:9px 6px;border-radius:10px;font-weight:600;font-size:13.5px;color:var(--muted);transition:.18s;white-space:nowrap}
+.tabs button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.tabs button:disabled{opacity:.4;cursor:default}
+
+/* sections */
+section{display:none;animation:rise .35s cubic-bezier(.2,.7,.2,1) both}
+section.show{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 2px 12px}
+.sec-head h2{font-size:21px;font-weight:700}
+.sec-head .sub{font-size:12.5px;color:var(--faint);margin-top:2px}
+
+/* date strip */
+.daynav{display:flex;align-items:center;gap:8px;margin:4px 0 14px}
+.daynav .lbl{flex:1;text-align:center;font-weight:700;font-size:15px;text-transform:capitalize}
+.daynav .nav{width:40px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;font-size:18px;color:var(--muted)}
+.daynav .nav:hover{color:var(--ink)}
+.chip-today{padding:0 12px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--surface);font-weight:600;font-size:13px;color:var(--muted)}
+
+/* filter pills */
+.pills{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 8px;margin:0 -2px;-webkit-overflow-scrolling:touch}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex:none;padding:7px 13px;border-radius:30px;border:1px solid var(--border);background:var(--surface);font-size:12.5px;font-weight:600;color:var(--muted);transition:.15s}
+.pill.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* garde cards grouped by specialite */
+.spec-group{margin-bottom:16px}
+.spec-title{display:flex;align-items:center;gap:9px;font-weight:700;font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:var(--faint);margin:0 2px 9px}
+.spec-title .ln{flex:1;height:1px;background:var(--border)}
+.gcard{
+  display:flex;align-items:center;gap:13px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;
+  margin-bottom:9px;box-shadow:var(--shadow);position:relative;overflow:hidden
+}
+.gcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--service)}
+.gcard.urg::before{background:var(--urgences)}
+.gcard .av{width:42px;height:42px;border-radius:13px;flex:none;display:grid;place-items:center;font-weight:700;font-size:15px;background:var(--primary-soft);color:var(--primary-ink)}
+.gcard .info{flex:1;min-width:0}
+.gcard .nm{font-weight:700;font-size:15.5px;line-height:1.2}
+.gcard .meta{font-size:12.5px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:20px}
+.tag.service{background:var(--service-soft);color:var(--service)}
+.tag.urgences{background:var(--urgences-soft);color:var(--urgences)}
+.grade-dot{display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.grade-dot::before{content:"";width:7px;height:7px;border-radius:50%}
+.g-Interne::before{background:var(--interne)} .g-Résident::before{background:var(--resident)} .g-Professeur::before{background:var(--prof)}
+.callbtn{width:42px;height:42px;border-radius:13px;border:1px solid var(--border);background:var(--surface-2);display:grid;place-items:center;color:var(--primary);font-size:18px;flex:none;transition:.15s}
+.callbtn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.callbtn.off{color:var(--faint);pointer-events:none;opacity:.5}
+
+.empty{text-align:center;padding:42px 20px;color:var(--faint)}
+.empty .ic{font-size:34px;opacity:.5;margin-bottom:8px}
+.empty p{font-size:14px}
+
+/* calendar */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{text-align:center;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;padding-bottom:4px}
+.cal-cell{
+  aspect-ratio:1/1.05;border:1px solid var(--border);border-radius:12px;background:var(--surface);
+  padding:7px 6px;display:flex;flex-direction:column;transition:.15s;position:relative
+}
+.cal-cell.blank{background:transparent;border:none}
+.cal-cell:not(.blank):hover{border-color:var(--primary);transform:translateY(-1px)}
+.cal-cell.today{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.cal-cell.sel{background:var(--primary);border-color:var(--primary)}
+.cal-cell.sel .cn,.cal-cell.sel .cc{color:#fff}
+.cal-cell .cn{font-weight:700;font-size:14px}
+.cal-cell .dots{margin-top:auto;display:flex;gap:3px;flex-wrap:wrap}
+.cal-cell .dot{width:6px;height:6px;border-radius:50%;background:var(--service)}
+.cal-cell .dot.u{background:var(--urgences)}
+.cal-cell .cc{font-size:10px;color:var(--muted);margin-top:auto;font-weight:600}
+
+/* annuaire */
+.search{width:100%;padding:12px 14px;border-radius:13px;border:1px solid var(--border);background:var(--surface);color:var(--ink);margin-bottom:10px}
+.search::placeholder{color:var(--faint)}
+.acard{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow)}
+.acard .av{width:44px;height:44px;border-radius:14px;flex:none;display:grid;place-items:center;font-weight:700;font-size:16px;background:var(--primary-soft);color:var(--primary-ink)}
+.acard .info{flex:1;min-width:0}
+.acard .nm{font-weight:700;font-size:15.5px}
+.acard .meta{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+/* mes gardes / forms */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);font-weight:600;color:var(--muted);transition:.15s}
+.seg button.on.s{background:var(--service-soft);border-color:var(--service);color:var(--service)}
+.seg button.on.u{background:var(--urgences-soft);border-color:var(--urgences);color:var(--urgences)}
+.btn{width:100%;padding:13px;border-radius:13px;background:var(--primary);color:#fff;font-weight:700;font-size:15px;transition:.15s;box-shadow:0 8px 20px -10px var(--primary)}
+.btn:hover{filter:brightness(1.06)} .btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--border);box-shadow:none}
+.btn.danger{background:var(--urgences)}
+.mg-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.mg-row:last-child{border-bottom:none}
+.mg-row .d{font-weight:700;font-size:14px;text-transform:capitalize}
+.mg-row .x{margin-left:auto;width:36px;height:36px;border-radius:10px;border:1px solid var(--border);display:grid;place-items:center;color:var(--urgences);font-size:16px}
+.mg-row .x:hover{background:var(--urgences-soft)}
+
+/* modal */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(10,16,15,.5);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;padding:0}
+.overlay.show{display:flex;animation:fade .2s both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{width:100%;max-width:480px;background:var(--surface);border-radius:24px 24px 0 0;border:1px solid var(--border);padding:22px 20px calc(26px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.25);animation:slideup .3s cubic-bezier(.2,.8,.2,1) both;max-height:92vh;overflow-y:auto}
+@media(min-width:560px){.overlay{align-items:center;padding:20px}.modal{border-radius:24px}}
+@keyframes slideup{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+.modal h3{font-size:20px;font-weight:800;margin-bottom:4px}
+.modal .mh-sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.modal .close{position:absolute}
+.switch-line{text-align:center;font-size:13.5px;color:var(--muted);margin-top:14px}
+.switch-line a{color:var(--primary);font-weight:700;cursor:pointer}
+.err{background:var(--urgences-soft);color:var(--urgences);font-size:13px;font-weight:600;padding:10px 12px;border-radius:11px;margin-bottom:13px;display:none}
+.err.show{display:block}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,80px);z-index:80;background:var(--ink);color:var(--bg);font-weight:600;font-size:14px;padding:12px 18px;border-radius:30px;box-shadow:var(--shadow);opacity:0;transition:.3s;pointer-events:none}
+.toast.show{transform:translate(-50%,0);opacity:1}
+
+.hint{font-size:12px;color:var(--faint);text-align:center;margin-top:18px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <span class="pulse">✚</span>
+      <span>PlanGarde<small>Gardes & annuaire</small></span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="themeBtn" title="Thème">🌙</button>
+      <div id="authSlot"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="banner" id="banner" style="display:none"></div>
+
+  <nav class="tabs">
+    <button data-tab="today" class="active">Aujourd'hui</button>
+    <button data-tab="cal">Calendrier</button>
+    <button data-tab="dir">Annuaire</button>
+    <button data-tab="mine" id="tabMine" disabled>Mes gardes</button>
+  </nav>
+
+  <!-- AUJOURD'HUI / JOUR -->
+  <section id="today" class="show">
+    <div class="daynav">
+      <button class="nav" id="dPrev">‹</button>
+      <div class="lbl" id="dLabel"></div>
+      <button class="nav" id="dNext">›</button>
+    </div>
+    <div style="text-align:center;margin:-6px 0 12px"><button class="chip-today" id="dToday">Aujourd'hui</button></div>
+    <div class="pills" id="todayPills"></div>
+    <div id="todayList"></div>
+  </section>
+
+  <!-- CALENDRIER -->
+  <section id="cal">
+    <div class="daynav">
+      <button class="nav" id="mPrev">‹</button>
+      <div class="lbl" id="mLabel"></div>
+      <button class="nav" id="mNext">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <p class="hint">Touchez un jour pour voir les gardes et en ajouter.</p>
+  </section>
+
+  <!-- ANNUAIRE -->
+  <section id="dir">
+    <div class="sec-head"><div><h2>Annuaire</h2><div class="sub" id="dirCount"></div></div></div>
+    <input class="search" id="dirSearch" placeholder="Rechercher un nom…" />
+    <div class="pills" id="dirPills"></div>
+    <div id="dirList"></div>
+  </section>
+
+  <!-- MES GARDES -->
+  <section id="mine">
+    <div class="sec-head"><div><h2>Mes gardes</h2><div class="sub" id="mineSub"></div></div></div>
+    <div class="card">
+      <div class="field"><label>Date</label><input type="date" id="gDate"></div>
+      <div class="field"><label>Spécialité</label><select id="gSpec"></select></div>
+      <div class="field"><label>Type de garde</label>
+        <div class="seg" id="gType">
+          <button class="on s" data-v="Service">Service</button>
+          <button data-v="Urgences">Urgences</button>
+        </div>
+      </div>
+      <div class="field"><label>Note (optionnel)</label><input id="gNote" placeholder="Ex : 2e ligne, astreinte…"></div>
+      <button class="btn" id="gAdd">Ajouter la garde</button>
+    </div>
+    <div class="card" id="mineListCard">
+      <div class="spec-title">À venir<span class="ln"></span></div>
+      <div id="mineList"></div>
+    </div>
+  </section>
+</div>
+
+<!-- MODAL AUTH -->
+<div class="overlay" id="authOverlay">
+  <div class="modal">
+    <h3 id="authTitle">Connexion</h3>
+    <div class="mh-sub" id="authSub">Choisis ton nom et entre ton code PIN.</div>
+    <div class="err" id="authErr"></div>
+    <div id="authBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ====================================================================
+   1) CONFIGURATION  —  colle ici tes clés Supabase (Settings > API)
+   ==================================================================== */
+const SUPABASE_URL      = "https://eswkzyflwhmoyejpyhgp.supabase.co";   // ex: https://xxxx.supabase.co
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzd2t6eWZsd2htb3llanB5aGdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTczNzcsImV4cCI6MjA5NTYzMzM3N30.3tUGwkRI1RbEUG2_jPGVRO3e6VCThxxKuqr4C4Vslxo";       // clé "anon public"
+
+/* Liste des spécialités (modifiable librement) */
+const SPECIALITES = [
+  "Anesthésie-Réanimation","Médecine interne","Cardiologie","Pneumologie",
+  "Néphrologie","Gastro-entérologie","Neurologie","Endocrinologie","Hématologie",
+  "Chirurgie générale","Chirurgie viscérale","Traumatologie-Orthopédie","Urologie",
+  "Neurochirurgie","Gynéco-obstétrique","Pédiatrie","Urgences","Réanimation",
+  "Radiologie","ORL","Ophtalmologie","Dermatologie","Psychiatrie","Maladies infectieuses"
+];
+const GRADES = ["Interne","Résident","Professeur"];
+
+/* ====================================================================
+   2) COUCHE DONNÉES  (Supabase si configuré, sinon mode démo en mémoire)
+   ==================================================================== */
+const CONFIGURED = !SUPABASE_URL.includes("VOTRE_") && !SUPABASE_ANON_KEY.includes("VOTRE_");
+let sb = null;
+if (CONFIGURED && window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* --- magasin démo --- */
+const demo = {
+  medecins: [
+    {id:"m1",nom:"Mehdi Benattahellah",specialite:"Anesthésie-Réanimation",grade:"Interne",telephone:"0612345678",pin:"1234"},
+    {id:"m2",nom:"Rim Alaoui",specialite:"Cardiologie",grade:"Résident",telephone:"0698765432",pin:"1234"},
+    {id:"m3",nom:"Youssef Tazi",specialite:"Urgences",grade:"Interne",telephone:"0655443322",pin:"1234"},
+    {id:"m4",nom:"Pr. Hicham Bakkali",specialite:"Anesthésie-Réanimation",grade:"Professeur",telephone:"0661122334",pin:"1234"},
+    {id:"m5",nom:"Salma Idrissi",specialite:"Pédiatrie",grade:"Résident",telephone:"0677889900",pin:"1234"},
+  ],
+  gardes: []
+};
+(function seedDemo(){
+  const t=new Date(); const iso=d=>d.toISOString().slice(0,10);
+  const mk=(off,med,spec,type)=>{const d=new Date(t);d.setDate(t.getDate()+off);
+    demo.gardes.push({id:"g"+demo.gardes.length,medecin_id:med,date:iso(d),specialite:spec,type_garde:type,note:null});};
+  mk(0,"m1","Anesthésie-Réanimation","Service"); mk(0,"m3","Urgences","Urgences"); mk(0,"m2","Cardiologie","Service");
+  mk(1,"m4","Anesthésie-Réanimation","Service"); mk(1,"m5","Pédiatrie","Urgences");
+  mk(2,"m1","Anesthésie-Réanimation","Urgences"); mk(3,"m2","Cardiologie","Service");
+  mk(-1,"m3","Urgences","Service");
+})();
+
+const DB = {
+  async annuaire(){
+    if(sb){const {data}=await sb.from("annuaire").select("*").order("nom");return data||[];}
+    return [...demo.medecins].map(({pin,...r})=>r).sort((a,b)=>a.nom.localeCompare(b.nom));
+  },
+  async gardes(start,end){
+    if(sb){const {data}=await sb.from("gardes_detail").select("*").gte("date",start).lte("date",end).order("date");return data||[];}
+    return demo.gardes.filter(g=>g.date>=start&&g.date<=end).map(g=>{
+      const m=demo.medecins.find(x=>x.id===g.medecin_id)||{};
+      return {...g,nom:m.nom,grade:m.grade,telephone:m.telephone};});
+  },
+  async creer(nom,spec,grade,tel,pin){
+    if(sb){const {data,error}=await sb.rpc("creer_compte",{p_nom:nom,p_specialite:spec,p_grade:grade,p_telephone:tel,p_pin:pin});
+      if(error)return{ok:false,error:error.message};return data;}
+    if(pin.length<4)return{ok:false,error:"Le PIN doit faire au moins 4 chiffres"};
+    if(demo.medecins.some(m=>m.nom.toLowerCase()===nom.trim().toLowerCase()))return{ok:false,error:"Ce nom existe déjà"};
+    const id="m"+(demo.medecins.length+1);demo.medecins.push({id,nom:nom.trim(),specialite:spec,grade,telephone:tel,pin});
+    return{ok:true,id,nom:nom.trim(),specialite:spec,grade,telephone:tel};
+  },
+  async login(nom,pin){
+    if(sb){const {data,error}=await sb.rpc("login",{p_nom:nom,p_pin:pin});
+      if(error)return{ok:false,error:error.message};return data;}
+    const m=demo.medecins.find(x=>x.nom.toLowerCase()===nom.trim().toLowerCase());
+    if(!m)return{ok:false,error:"Nom introuvable"};
+    if(m.pin!==pin)return{ok:false,error:"Code PIN incorrect"};
+    return{ok:true,id:m.id,nom:m.nom,specialite:m.specialite,grade:m.grade,telephone:m.telephone};
+  },
+  async inscrire(id,pin,date,spec,type,note){
+    if(sb){const {data,error}=await sb.rpc("inscrire_garde",{p_medecin_id:id,p_pin:pin,p_date:date,p_specialite:spec,p_type:type,p_note:note});
+      if(error)return{ok:false,error:error.message};return data;}
+    const ex=demo.gardes.find(g=>g.medecin_id===id&&g.date===date&&g.specialite===spec);
+    if(ex){ex.type_garde=type;ex.note=note;}else demo.gardes.push({id:"g"+Date.now(),medecin_id:id,date,specialite:spec,type_garde:type,note});
+    return{ok:true};
+  },
+  async supprimer(id,pin,gid){
+    if(sb){const {data,error}=await sb.rpc("supprimer_garde",{p_medecin_id:id,p_pin:pin,p_garde_id:gid});
+      if(error)return{ok:false,error:error.message};return data;}
+    demo.gardes=demo.gardes.filter(g=>!(g.id===gid&&g.medecin_id===id));return{ok:true};
+  }
+};
+
+/* ====================================================================
+   3) ÉTAT + HELPERS
+   ==================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const state={user:null,pin:null,tab:"today",sel:new Date(),cal:new Date(),gType:"Service",
+             todayFilter:"all",dirFilter:"all",annuaire:[],monthGardes:[],dayGardes:[]};
+
+const ISO=d=>{const x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
+const initials=n=>n.replace(/^(Pr\.?|Dr\.?)\s*/i,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const fmtDay=d=>d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+const fmtMonth=d=>d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200);}
+
+/* session persistante (no-op silencieux dans l'aperçu sandbox) */
+function saveSession(){try{localStorage.setItem("pg_sess",JSON.stringify({user:state.user,pin:state.pin}));}catch(e){}}
+function loadSession(){try{const s=JSON.parse(localStorage.getItem("pg_sess")||"null");if(s){state.user=s.user;state.pin=s.pin;}}catch(e){}}
+function clearSession(){try{localStorage.removeItem("pg_sess");}catch(e){}}
+
+/* ====================================================================
+   4) AUTH UI
+   ==================================================================== */
+function renderAuthSlot(){
+  const slot=$("#authSlot");
+  if(state.user){
+    slot.innerHTML=`<div class="who"><span class="avatar">${initials(state.user.nom)}</span>
+      <span class="nm">${state.user.nom}</span></div>`;
+    slot.querySelector(".who").onclick=logout;
+    $("#tabMine").disabled=false;
+  }else{
+    slot.innerHTML=`<button class="btn-login">Connexion</button>`;
+    slot.querySelector("button").onclick=()=>openAuth("login");
+    $("#tabMine").disabled=true;
+  }
+}
+function openAuth(mode){
+  $("#authErr").classList.remove("show");
+  const body=$("#authBody");
+  if(mode==="login"){
+    $("#authTitle").textContent="Connexion";
+    $("#authSub").textContent="Entre ton nom et ton code PIN.";
+    body.innerHTML=`
+      <div class="field"><label>Nom</label><input id="lNom" placeholder="Ton nom" autocomplete="off"></div>
+      <div class="field"><label>Code PIN</label><input id="lPin" type="password" inputmode="numeric" placeholder="••••"></div>
+      <button class="btn" id="lBtn">Se connecter</button>
+      <div class="switch-line">Pas encore de compte ? <a id="toReg">Créer un compte</a></div>`;
+    $("#lBtn").onclick=doLogin;
+    $("#lPin").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+    $("#toReg").onclick=()=>openAuth("register");
+  }else{
+    $("#authTitle").textContent="Créer un compte";
+    $("#authSub").textContent="Tu n'auras besoin que de ton nom + PIN ensuite.";
+    body.innerHTML=`
+      <div class="field"><label>Nom complet</label><input id="rNom" placeholder="Dr Prénom Nom"></div>
+      <div class="field"><label>Spécialité</label><select id="rSpec"></select></div>
+      <div class="field"><label>Grade</label><select id="rGrade"></select></div>
+      <div class="field"><label>Téléphone</label><input id="rTel" inputmode="tel" placeholder="06 …"></div>
+      <div class="field"><label>Choisis un code PIN (4+ chiffres)</label><input id="rPin" type="password" inputmode="numeric" placeholder="••••"></div>
+      <button class="btn" id="rBtn">Créer mon compte</button>
+      <div class="switch-line">Déjà inscrit ? <a id="toLog">Se connecter</a></div>`;
+    fillSelect($("#rSpec"),SPECIALITES);fillSelect($("#rGrade"),GRADES);
+    $("#rBtn").onclick=doRegister;
+    $("#toLog").onclick=()=>openAuth("login");
+  }
+  $("#authOverlay").classList.add("show");
+}
+function closeAuth(){$("#authOverlay").classList.remove("show");}
+function authError(m){const e=$("#authErr");e.textContent=m;e.classList.add("show");}
+
+async function doLogin(){
+  const nom=$("#lNom").value.trim(),pin=$("#lPin").value.trim();
+  if(!nom||!pin)return authError("Renseigne ton nom et ton PIN.");
+  const r=await DB.login(nom,pin);
+  if(!r.ok)return authError(r.error);
+  state.user={id:r.id,nom:r.nom,specialite:r.specialite,grade:r.grade,telephone:r.telephone};
+  state.pin=pin;saveSession();closeAuth();renderAuthSlot();toast("Connecté · "+r.nom);
+  refreshAll();
+}
+async function doRegister(){
+  const nom=$("#rNom").value.trim(),spec=$("#rSpec").value,grade=$("#rGrade").value,
+        tel=$("#rTel").value.trim(),pin=$("#rPin").value.trim();
+  if(!nom||!pin)return authError("Nom et PIN obligatoires.");
+  if(pin.length<4)return authError("Le PIN doit faire au moins 4 chiffres.");
+  const r=await DB.creer(nom,spec,grade,tel,pin);
+  if(!r.ok)return authError(r.error);
+  state.user={id:r.id,nom:r.nom,specialite:r.specialite,grade:r.grade,telephone:r.telephone};
+  state.pin=pin;saveSession();closeAuth();renderAuthSlot();toast("Compte créé · bienvenue !");
+  refreshAll();
+}
+function logout(){
+  if(!confirm("Se déconnecter ?"))return;
+  state.user=null;state.pin=null;clearSession();renderAuthSlot();
+  if(state.tab==="mine")switchTab("today");
+  toast("Déconnecté");
+}
+
+/* ====================================================================
+   5) RENDUS
+   ==================================================================== */
+function fillSelect(el,arr,val){el.innerHTML=arr.map(x=>`<option ${x===val?'selected':''}>${x}</option>`).join('');}
+
+function gradeSpan(g){return `<span class="grade-dot g-${g}">${g}</span>`;}
+
+/* ---- JOUR (Aujourd'hui) ---- */
+async function renderToday(){
+  $("#dLabel").textContent=fmtDay(state.sel);
+  const iso=ISO(state.sel);
+  state.dayGardes=await DB.gardes(iso,iso);
+  // pills de filtre spécialité
+  const specs=[...new Set(state.dayGardes.map(g=>g.specialite))].sort();
+  const pills=$("#todayPills");
+  pills.innerHTML=`<button class="pill ${state.todayFilter==='all'?'on':''}" data-f="all">Toutes</button>`+
+    specs.map(s=>`<button class="pill ${state.todayFilter===s?'on':''}" data-f="${s}">${s}</button>`).join('');
+  pills.querySelectorAll(".pill").forEach(p=>p.onclick=()=>{state.todayFilter=p.dataset.f;renderToday();});
+
+  let list=state.dayGardes;
+  if(state.todayFilter!=='all')list=list.filter(g=>g.specialite===state.todayFilter);
+  const box=$("#todayList");
+  if(!list.length){box.innerHTML=emptyState("Aucune garde ce jour");return;}
+  // groupé par spécialité
+  const groups={};list.forEach(g=>{(groups[g.specialite]=groups[g.specialite]||[]).push(g);});
+  box.innerHTML=Object.keys(groups).sort().map(spec=>`
+    <div class="spec-group">
+      <div class="spec-title">${spec}<span class="ln"></span></div>
+      ${groups[spec].sort((a,b)=>(a.type_garde>b.type_garde?1:-1)).map(gCard).join('')}
+    </div>`).join('');
+}
+function gCard(g){
+  const urg=g.type_garde==='Urgences';
+  const tel=g.telephone?`<a class="callbtn" href="tel:${g.telephone}">📞</a>`:`<span class="callbtn off">📞</span>`;
+  return `<div class="gcard ${urg?'urg':''}">
+    <div class="av">${initials(g.nom)}</div>
+    <div class="info">
+      <div class="nm">${g.nom}</div>
+      <div class="meta">${gradeSpan(g.grade)}<span class="tag ${urg?'urgences':'service'}">${g.type_garde}</span>${g.note?`· ${g.note}`:''}</div>
+    </div>${tel}</div>`;
+}
+function emptyState(t){return `<div class="empty"><div class="ic">🌙</div><p>${t}</p></div>`;}
+
+/* ---- CALENDRIER ---- */
+async function renderCal(){
+  const y=state.cal.getFullYear(),m=state.cal.getMonth();
+  $("#mLabel").textContent=fmtMonth(state.cal);
+  const first=new Date(y,m,1),last=new Date(y,m+1,0);
+  state.monthGardes=await DB.gardes(ISO(first),ISO(last));
+  const byDate={};state.monthGardes.forEach(g=>{(byDate[g.date]=byDate[g.date]||[]).push(g);});
+  const dows=["L","M","M","J","V","S","D"];
+  let html=dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  let start=(first.getDay()+6)%7; // lundi=0
+  for(let i=0;i<start;i++)html+=`<div class="cal-cell blank"></div>`;
+  const todayIso=ISO(new Date());
+  for(let day=1;day<=last.getDate();day++){
+    const d=new Date(y,m,day),iso=ISO(d),gs=byDate[iso]||[];
+    const hasU=gs.some(g=>g.type_garde==='Urgences'),hasS=gs.some(g=>g.type_garde==='Service');
+    const dots=(hasS?`<span class="dot"></span>`:'')+(hasU?`<span class="dot u"></span>`:'');
+    html+=`<div class="cal-cell ${iso===todayIso?'today':''} ${iso===ISO(state.sel)?'sel':''}" data-iso="${iso}">
+      <span class="cn">${day}</span>
+      ${gs.length?`<span class="cc">${gs.length}</span><div class="dots">${dots}</div>`:''}
+    </div>`;
+  }
+  $("#calGrid").innerHTML=html;
+  $$("#calGrid .cal-cell:not(.blank)").forEach(c=>c.onclick=()=>{
+    state.sel=new Date(c.dataset.iso+"T00:00:00");switchTab("today");
+  });
+}
+
+/* ---- ANNUAIRE ---- */
+async function renderDir(){
+  state.annuaire=await DB.annuaire();
+  $("#dirCount").textContent=state.annuaire.length+" médecins";
+  const specs=[...new Set(state.annuaire.map(m=>m.specialite))].sort();
+  const pills=$("#dirPills");
+  pills.innerHTML=`<button class="pill ${state.dirFilter==='all'?'on':''}" data-f="all">Toutes</button>`+
+    specs.map(s=>`<button class="pill ${state.dirFilter===s?'on':''}" data-f="${s}">${s}</button>`).join('');
+  pills.querySelectorAll(".pill").forEach(p=>p.onclick=()=>{state.dirFilter=p.dataset.f;renderDir();});
+  applyDirFilter();
+}
+function applyDirFilter(){
+  const q=$("#dirSearch").value.trim().toLowerCase();
+  let list=state.annuaire;
+  if(state.dirFilter!=='all')list=list.filter(m=>m.specialite===state.dirFilter);
+  if(q)list=list.filter(m=>m.nom.toLowerCase().includes(q));
+  const box=$("#dirList");
+  if(!list.length){box.innerHTML=emptyState("Aucun médecin");return;}
+  box.innerHTML=list.map(m=>{
+    const tel=m.telephone?`<a class="callbtn" href="tel:${m.telephone}">📞</a>`:`<span class="callbtn off">📞</span>`;
+    return `<div class="acard"><div class="av">${initials(m.nom)}</div>
+      <div class="info"><div class="nm">${m.nom}</div>
+      <div class="meta">${gradeSpan(m.grade)} · ${m.specialite}${m.telephone?` · ${m.telephone}`:''}</div></div>${tel}</div>`;
+  }).join('');
+}
+
+/* ---- MES GARDES ---- */
+async function renderMine(){
+  if(!state.user)return;
+  $("#mineSub").textContent=state.user.nom+" · "+state.user.specialite;
+  fillSelect($("#gSpec"),SPECIALITES,state.user.specialite);
+  if(!$("#gDate").value)$("#gDate").value=ISO(state.sel);
+  const today=ISO(new Date());
+  const all=await DB.gardes(today,"2100-01-01");
+  const mine=all.filter(g=>g.medecin_id===state.user.id).sort((a,b)=>a.date.localeCompare(b.date));
+  const box=$("#mineList");
+  if(!mine.length){box.innerHTML=`<p style="color:var(--faint);font-size:13.5px;padding:6px 0">Aucune garde à venir.</p>`;return;}
+  box.innerHTML=mine.map(g=>{
+    const d=new Date(g.date+"T00:00:00");
+    return `<div class="mg-row">
+      <div><div class="d">${d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</div>
+      <div class="meta" style="font-size:12.5px;color:var(--muted)">${g.specialite} · <span class="tag ${g.type_garde==='Urgences'?'urgences':'service'}">${g.type_garde}</span></div></div>
+      <button class="x" data-id="${g.id}">✕</button></div>`;
+  }).join('');
+  box.querySelectorAll(".x").forEach(b=>b.onclick=()=>delGarde(b.dataset.id));
+}
+async function addGarde(){
+  if(!state.user)return openAuth("login");
+  const date=$("#gDate").value,spec=$("#gSpec").value,type=state.gType,note=$("#gNote").value.trim();
+  if(!date)return toast("Choisis une date");
+  $("#gAdd").disabled=true;
+  const r=await DB.inscrire(state.user.id,state.pin,date,spec,type,note);
+  $("#gAdd").disabled=false;
+  if(!r.ok)return toast(r.error||"Erreur");
+  $("#gNote").value="";toast("Garde ajoutée");
+  renderMine();
+}
+async function delGarde(id){
+  const r=await DB.supprimer(state.user.id,state.pin,id);
+  if(!r.ok)return toast(r.error||"Erreur");
+  toast("Garde supprimée");renderMine();
+}
+
+/* ====================================================================
+   6) NAVIGATION + INIT
+   ==================================================================== */
+function switchTab(tab){
+  state.tab=tab;
+  $$(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+  $$("section").forEach(s=>s.classList.toggle("show",s.id===tab));
+  if(tab==="today")renderToday();
+  if(tab==="cal")renderCal();
+  if(tab==="dir")renderDir();
+  if(tab==="mine")renderMine();
+}
+function refreshAll(){renderToday();if(state.tab==="mine")renderMine();}
+
+function bind(){
+  $$(".tabs button").forEach(b=>b.onclick=()=>{if(!b.disabled)switchTab(b.dataset.tab);});
+  $("#dPrev").onclick=()=>{state.sel.setDate(state.sel.getDate()-1);state.sel=new Date(state.sel);renderToday();};
+  $("#dNext").onclick=()=>{state.sel.setDate(state.sel.getDate()+1);state.sel=new Date(state.sel);renderToday();};
+  $("#dToday").onclick=()=>{state.sel=new Date();renderToday();};
+  $("#mPrev").onclick=()=>{state.cal.setMonth(state.cal.getMonth()-1);state.cal=new Date(state.cal);renderCal();};
+  $("#mNext").onclick=()=>{state.cal.setMonth(state.cal.getMonth()+1);state.cal=new Date(state.cal);renderCal();};
+  $("#dirSearch").oninput=applyDirFilter;
+  $("#gType").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    state.gType=b.dataset.v;
+    $("#gType").querySelectorAll("button").forEach(x=>x.className=x.dataset.v===state.gType?(state.gType==='Urgences'?'on u':'on s'):'');
+  });
+  $("#gAdd").onclick=addGarde;
+  $("#authOverlay").onclick=e=>{if(e.target.id==="authOverlay")closeAuth();};
+  // thème
+  $("#themeBtn").onclick=()=>{
+    const cur=document.documentElement.getAttribute("data-theme");
+    const next=cur==="dark"?"light":"dark";
+    document.documentElement.setAttribute("data-theme",next);
+    $("#themeBtn").textContent=next==="dark"?"☀️":"🌙";
+    try{localStorage.setItem("pg_theme",next);}catch(e){}
+  };
+}
+
+function initTheme(){
+  let t="light";try{t=localStorage.getItem("pg_theme")|| (matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+  $("#themeBtn").textContent=t==="dark"?"☀️":"🌙";
+}
+function initBanner(){
+  if(!CONFIGURED){
+    const b=$("#banner");b.style.display="flex";
+    b.innerHTML=`<span style="font-size:16px">🧪</span><span><b>Mode démo</b> — données fictives en mémoire. Pour activer le partage réel, colle ton <b>URL</b> et ta <b>clé anon</b> Supabase en haut du fichier <b>index.html</b>, puis redéploie. (Comptes démo : n'importe quel nom de la liste, PIN <b>1234</b>.)</span>`;
+  }
+}
+
+window.addEventListener("DOMContentLoaded",()=>{
+  initTheme();initBanner();loadSession();bind();renderAuthSlot();switchTab("today");
+});
+</script>
+</body>
+</html>
