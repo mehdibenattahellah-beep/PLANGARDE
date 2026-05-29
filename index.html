@@ -135,6 +135,16 @@ section.show{display:block}
 .role-chip{display:flex;align-items:center;gap:9px;padding:9px 12px;border:1px solid var(--border);border-radius:11px;margin-bottom:7px;font-size:13.5px}
 .role-chip .rx{margin-left:auto;color:var(--urgences);font-size:15px;width:30px;height:30px;display:grid;place-items:center;border-radius:8px}
 .role-chip .rx:hover{background:var(--urgences-soft)}
+.signup-as{display:flex;align-items:center;gap:11px;padding:11px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px}
+.signup-as .av{width:40px;height:40px;border-radius:12px;background:var(--primary-soft);color:var(--primary-ink);display:grid;place-items:center;font-weight:700;font-size:15px;flex:none}
+.signup-as .t1{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
+.signup-as .t2{font-weight:700;font-size:14.5px;margin-top:1px}
+.signup-as .t3{font-size:12px;color:var(--muted)}
+.collapse-head{display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:14px;color:var(--ink);padding:2px 0}
+.collapse-head .chev{margin-left:auto;color:var(--faint);transition:transform .2s}
+.collapse-head.open .chev{transform:rotate(180deg)}
+.collapse-body{display:none;margin-top:16px}
+.collapse-body.open{display:block}
 .cal-cell .dot.a{background:var(--astreinte)} .cal-cell .dot.j{background:var(--jour)}
 .grade-dot{display:inline-flex;align-items:center;gap:5px;font-weight:600}
 .grade-dot::before{content:"";width:7px;height:7px;border-radius:50%}
@@ -317,44 +327,56 @@ body.authed #gate{display:none}
   <section id="mine">
     <div class="sec-head"><div><h2>Mes gardes</h2><div class="sub" id="mineSub"></div></div></div>
 
-    <!-- Ajouter -->
+    <!-- M'inscrire sur un poste -->
     <div class="card">
-      <div class="spec-title" style="margin-bottom:14px">Ajouter une garde / astreinte<span class="ln"></span></div>
+      <div class="signup-as">
+        <div class="av" id="signupAv"></div>
+        <div>
+          <div class="t1">Tu t'inscris</div>
+          <div class="t2" id="signupNom"></div>
+          <div class="t3" id="signupSpec"></div>
+        </div>
+      </div>
       <div class="err" id="addErr"></div>
-      <div class="field"><label>Rôle / poste</label><select id="gRole"></select></div>
-      <div class="field" id="gDateSingleWrap"><label>Date</label><input type="date" id="gDate"></div>
+      <div class="field"><label>Sur quel poste ?</label><select id="gRole"></select></div>
+      <div class="field" id="gDateSingleWrap"><label>Quel jour ?</label><input type="date" id="gDate"></div>
       <div class="field" id="gDateRangeWrap" style="display:none">
-        <label>Période de l'astreinte (du → au)</label>
+        <label>Du → au (astreinte sur plusieurs jours)</label>
         <div style="display:flex;gap:8px">
           <input type="date" id="gDebut" style="flex:1">
           <input type="date" id="gFin" style="flex:1">
         </div>
       </div>
       <div class="field"><label>Note (optionnel)</label><input id="gNote" placeholder="Ex : 2e ligne, bip 4521…"></div>
-      <button class="btn" id="gAdd">Ajouter</button>
+      <button class="btn" id="gAdd">M'inscrire sur ce poste</button>
     </div>
 
-    <!-- Liste à venir -->
+    <!-- Mes prochaines gardes -->
     <div class="card" id="mineListCard">
-      <div class="spec-title">Mes affectations à venir<span class="ln"></span></div>
+      <div class="spec-title">Mes prochaines gardes<span class="ln"></span></div>
       <div id="mineList"></div>
     </div>
 
-    <!-- Gérer les rôles du service -->
+    <!-- Gérer les rôles (replié par défaut) -->
     <div class="card">
-      <div class="spec-title" style="margin-bottom:8px">Rôles de <span id="roleSpecName" style="text-transform:none;color:var(--ink)"></span><span class="ln"></span></div>
-      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5">Les rôles définissent les postes de ton service (garde de nuit, astreinte, avis, consultations…). Ils sont partagés par tous les membres de ta spécialité.</p>
-      <div class="err" id="roleErr"></div>
-      <div id="roleList" style="margin-bottom:14px"></div>
-      <div class="field"><label>Nouveau rôle</label><input id="newRoleNom" placeholder="Ex : Garde de nuit, Avis…"></div>
-      <div class="field"><label>Type de couverture</label>
-        <div class="seg" id="newRoleType">
-          <button class="on" data-v="garde">🌙 Garde</button>
-          <button data-v="astreinte">📟 Astreinte</button>
-          <button data-v="jour">☀️ Jour</button>
-        </div>
+      <div class="collapse-head" id="roleManageHead">
+        <span>⚙️ Gérer les postes de <span id="roleSpecName" style="color:var(--ink)"></span></span>
+        <span class="chev">▾</span>
       </div>
-      <button class="btn ghost" id="addRoleBtn">Ajouter ce rôle</button>
+      <div class="collapse-body" id="roleManageBody">
+        <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5">Définis ici les postes de ton service (garde de nuit, astreinte, avis, consultations…). Ils sont partagés par tous les membres de ta spécialité, à créer une seule fois.</p>
+        <div class="err" id="roleErr"></div>
+        <div id="roleList" style="margin-bottom:14px"></div>
+        <div class="field"><label>Nom du nouveau poste</label><input id="newRoleNom" placeholder="Ex : Garde de nuit, Avis…"></div>
+        <div class="field"><label>Type de couverture</label>
+          <div class="seg" id="newRoleType">
+            <button class="on" data-v="garde">🌙 Garde</button>
+            <button data-v="astreinte">📟 Astreinte</button>
+            <button data-v="jour">☀️ Jour</button>
+          </div>
+        </div>
+        <button class="btn ghost" id="addRoleBtn">Ajouter ce poste</button>
+      </div>
     </div>
   </section>
   <!-- MON COMPTE -->
@@ -743,6 +765,9 @@ async function renderMine(){
   if(!state.user)return;
   $("#mineSub").textContent=state.user.nom+" · "+state.user.specialite;
   $("#roleSpecName").textContent=state.user.specialite;
+  $("#signupAv").textContent=initials(state.user.nom);
+  $("#signupNom").textContent=state.user.nom;
+  $("#signupSpec").textContent=state.user.specialite;
   if(!$("#gDate").value)$("#gDate").value=ISO(state.sel);
   // charger les rôles de ma spécialité
   state.myRoles=await DB.roles();
@@ -923,6 +948,7 @@ function bind(){
   $("#mPrev").onclick=()=>{state.cal.setMonth(state.cal.getMonth()-1);state.cal=new Date(state.cal);renderCal();};
   $("#mNext").onclick=()=>{state.cal.setMonth(state.cal.getMonth()+1);state.cal=new Date(state.cal);renderCal();};
   $("#dirSearch").oninput=applyDirFilter;
+  $("#roleManageHead").onclick=()=>{$("#roleManageHead").classList.toggle("open");$("#roleManageBody").classList.toggle("open");};
   $("#gRole").onchange=toggleDateMode;
   $("#newRoleType").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     state.newRoleType=b.dataset.v;
