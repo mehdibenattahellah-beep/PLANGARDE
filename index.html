@@ -204,6 +204,17 @@ section.show{display:block}
 .toast.show{transform:translate(-50%,0);opacity:1}
 
 .hint{font-size:12px;color:var(--faint);text-align:center;margin-top:18px;line-height:1.5}
+
+/* gate (accès réservé) */
+#gate{display:none;min-height:calc(100vh - 70px);align-items:center;justify-content:center;padding:24px 16px 60px}
+body:not(.authed) #gate{display:flex}
+body:not(.authed) .wrap{display:none}
+body.authed #gate{display:none}
+.gate-card{width:100%;max-width:410px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;box-shadow:var(--shadow)}
+.gate-card h1{font-size:23px;font-weight:800;text-align:center;margin-bottom:5px}
+.gate-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:22px;line-height:1.5}
+.gate-lock{width:52px;height:52px;border-radius:16px;background:var(--primary-soft);color:var(--primary-ink);display:grid;place-items:center;font-size:24px;margin:0 auto 14px}
+.gate-demo{margin-top:16px;padding:10px 12px;border-radius:11px;background:var(--service-soft);font-size:12px;color:var(--muted);line-height:1.5;text-align:center}
 </style>
 </head>
 <body>
@@ -219,6 +230,35 @@ section.show{display:block}
     </div>
   </div>
 </header>
+
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-lock">🔒</div>
+    <h1>AMIU6 Guard</h1>
+    <p class="gate-sub">Accès réservé aux membres de l'association.<br>Connecte-toi pour continuer.</p>
+    <div class="err" id="gErr"></div>
+
+    <div id="gLogin">
+      <div class="field"><label>Nom</label><input id="lNom" placeholder="Ton nom" autocomplete="off"></div>
+      <div class="field"><label>Code PIN</label><input id="lPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••"></div>
+      <button class="btn" id="lBtn">Se connecter</button>
+      <div class="switch-line">Pas encore de compte ? <a id="toReg">Créer un compte</a></div>
+    </div>
+
+    <div id="gReg" style="display:none">
+      <div class="field"><label>Nom complet</label><input id="rNom" placeholder="Dr Prénom Nom"></div>
+      <div class="field"><label>Spécialité</label><select id="rSpec"></select></div>
+      <div class="field"><label>Grade</label><select id="rGrade"></select></div>
+      <div class="field"><label>Téléphone</label><input id="rTel" inputmode="tel" placeholder="06 …"></div>
+      <div class="field"><label>Code PIN (6 chiffres)</label><input id="rPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••"></div>
+      <div class="field"><label>Code d'invitation AMIU6</label><input id="rInvite" placeholder="Fourni par l'association" autocomplete="off"></div>
+      <button class="btn" id="rBtn">Créer mon compte</button>
+      <div class="switch-line">Déjà inscrit ? <a id="toLog">Se connecter</a></div>
+    </div>
+
+    <div class="gate-demo" id="gateDemo" style="display:none"></div>
+  </div>
+</div>
 
 <div class="wrap">
   <div class="banner" id="banner" style="display:none"></div>
@@ -306,7 +346,7 @@ section.show{display:block}
       <div class="spec-title" style="margin-bottom:14px">Changer le code PIN<span class="ln"></span></div>
       <div class="err" id="pinErr"></div>
       <div class="field"><label>PIN actuel</label><input id="oldPin" type="password" inputmode="numeric" placeholder="••••"></div>
-      <div class="field"><label>Nouveau PIN (4+ chiffres)</label><input id="newPin" type="password" inputmode="numeric" placeholder="••••"></div>
+      <div class="field"><label>Nouveau PIN (6 chiffres)</label><input id="newPin" type="password" inputmode="numeric" placeholder="••••"></div>
       <div class="field"><label>Confirmer le nouveau PIN</label><input id="newPin2" type="password" inputmode="numeric" placeholder="••••"></div>
       <button class="btn" id="changePinBtn">Changer le PIN</button>
     </div>
@@ -316,15 +356,6 @@ section.show{display:block}
       <button class="btn danger" id="logoutBtn">Se déconnecter</button>
     </div>
   </section>
-<div class="overlay" id="authOverlay">
-  <div class="modal">
-    <h3 id="authTitle">Connexion</h3>
-    <div class="mh-sub" id="authSub">Choisis ton nom et entre ton code PIN.</div>
-    <div class="err" id="authErr"></div>
-    <div id="authBody"></div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -373,56 +404,71 @@ const demo = {
   mk(-1,"m3","Urgences","Service");
 })();
 
+let SESSION_TOKEN = null;  // jeton de session (jamais le PIN)
+
+function demoUser(id){const m=demo.medecins.find(x=>x.id===id);return m?{ok:true,token:"demo-"+id,id:m.id,nom:m.nom,specialite:m.specialite,grade:m.grade,telephone:m.telephone}:{ok:false,error:"Introuvable"};}
+
 const DB = {
+  async _rpc(fn,args){
+    const {data,error}=await sb.rpc(fn,args);
+    if(error){
+      if((error.message||"").indexOf("SESSION")>-1){onSessionExpired();return{ok:false,error:"Session expirée"};}
+      return{ok:false,error:error.message};
+    }
+    return data;
+  },
+  async login(nom,pin){
+    if(sb)return this._rpc("login",{p_nom:nom,p_pin:pin});
+    const m=demo.medecins.find(x=>x.nom.toLowerCase()===nom.trim().toLowerCase());
+    if(!m)return{ok:false,error:"Nom introuvable"};
+    if(m.pin!==pin)return{ok:false,error:"Code PIN incorrect"};
+    return demoUser(m.id);
+  },
+  async creer(nom,spec,grade,tel,pin,invite){
+    if(sb)return this._rpc("creer_compte",{p_nom:nom,p_specialite:spec,p_grade:grade,p_telephone:tel,p_pin:pin,p_invite:invite});
+    if(pin.length!==6)return{ok:false,error:"Le PIN doit faire 6 chiffres"};
+    if(demo.medecins.some(m=>m.nom.toLowerCase()===nom.trim().toLowerCase()))return{ok:false,error:"Ce nom existe déjà"};
+    const id="m"+(demo.medecins.length+1);demo.medecins.push({id,nom:nom.trim(),specialite:spec,grade,telephone:tel,pin});
+    return demoUser(id);
+  },
+  async verifierSession(token){
+    if(sb)return this._rpc("verifier_session",{p_token:token});
+    return demoUser((token||"").replace("demo-",""));
+  },
+  async deconnexion(token){
+    if(sb)return this._rpc("deconnexion",{p_token:token});
+    return{ok:true};
+  },
   async annuaire(){
-    if(sb){const {data}=await sb.from("annuaire").select("*").order("nom");return data||[];}
+    if(sb){const d=await this._rpc("get_annuaire",{p_token:SESSION_TOKEN});return Array.isArray(d)?d:[];}
     return [...demo.medecins].map(({pin,...r})=>r).sort((a,b)=>a.nom.localeCompare(b.nom));
   },
   async gardes(start,end){
-    if(sb){const {data}=await sb.from("gardes_detail").select("*").gte("date",start).lte("date",end).order("date");return data||[];}
+    if(sb){const d=await this._rpc("get_gardes",{p_token:SESSION_TOKEN,p_start:start,p_end:end});return Array.isArray(d)?d:[];}
     return demo.gardes.filter(g=>g.date>=start&&g.date<=end).map(g=>{
       const m=demo.medecins.find(x=>x.id===g.medecin_id)||{};
       return {...g,nom:m.nom,grade:m.grade,telephone:m.telephone};});
   },
-  async creer(nom,spec,grade,tel,pin){
-    if(sb){const {data,error}=await sb.rpc("creer_compte",{p_nom:nom,p_specialite:spec,p_grade:grade,p_telephone:tel,p_pin:pin});
-      if(error)return{ok:false,error:error.message};return data;}
-    if(pin.length<4)return{ok:false,error:"Le PIN doit faire au moins 4 chiffres"};
-    if(demo.medecins.some(m=>m.nom.toLowerCase()===nom.trim().toLowerCase()))return{ok:false,error:"Ce nom existe déjà"};
-    const id="m"+(demo.medecins.length+1);demo.medecins.push({id,nom:nom.trim(),specialite:spec,grade,telephone:tel,pin});
-    return{ok:true,id,nom:nom.trim(),specialite:spec,grade,telephone:tel};
-  },
-  async login(nom,pin){
-    if(sb){const {data,error}=await sb.rpc("login",{p_nom:nom,p_pin:pin});
-      if(error)return{ok:false,error:error.message};return data;}
-    const m=demo.medecins.find(x=>x.nom.toLowerCase()===nom.trim().toLowerCase());
-    if(!m)return{ok:false,error:"Nom introuvable"};
-    if(m.pin!==pin)return{ok:false,error:"Code PIN incorrect"};
-    return{ok:true,id:m.id,nom:m.nom,specialite:m.specialite,grade:m.grade,telephone:m.telephone};
-  },
-  async inscrire(id,pin,date,spec,type,note){
-    if(sb){const {data,error}=await sb.rpc("inscrire_garde",{p_medecin_id:id,p_pin:pin,p_date:date,p_specialite:spec,p_type:type,p_note:note});
-      if(error)return{ok:false,error:error.message};return data;}
+  async inscrire(date,spec,type,note){
+    if(sb)return this._rpc("inscrire_garde",{p_token:SESSION_TOKEN,p_date:date,p_specialite:spec,p_type:type,p_note:note});
+    const id=state.user.id;
     const ex=demo.gardes.find(g=>g.medecin_id===id&&g.date===date&&g.specialite===spec);
     if(ex){ex.type_garde=type;ex.note=note;}else demo.gardes.push({id:"g"+Date.now(),medecin_id:id,date,specialite:spec,type_garde:type,note});
     return{ok:true};
   },
-  async supprimer(id,pin,gid){
-    if(sb){const {data,error}=await sb.rpc("supprimer_garde",{p_medecin_id:id,p_pin:pin,p_garde_id:gid});
-      if(error)return{ok:false,error:error.message};return data;}
-    demo.gardes=demo.gardes.filter(g=>!(g.id===gid&&g.medecin_id===id));return{ok:true};
+  async supprimer(gid){
+    if(sb)return this._rpc("supprimer_garde",{p_token:SESSION_TOKEN,p_garde_id:gid});
+    demo.gardes=demo.gardes.filter(g=>!(g.id===gid&&g.medecin_id===state.user.id));return{ok:true};
   },
-  async changerPin(id,oldPin,newPin){
-    if(sb){const {data,error}=await sb.rpc("changer_pin",{p_medecin_id:id,p_old_pin:oldPin,p_new_pin:newPin});
-      if(error)return{ok:false,error:error.message};return data;}
-    const m=demo.medecins.find(x=>x.id===id);
+  async changerPin(oldPin,newPin){
+    if(sb)return this._rpc("changer_pin",{p_token:SESSION_TOKEN,p_old_pin:oldPin,p_new_pin:newPin});
+    const m=demo.medecins.find(x=>x.id===state.user.id);
     if(!m||m.pin!==oldPin)return{ok:false,error:"PIN actuel incorrect"};
     m.pin=newPin;return{ok:true};
   },
-  async changerTel(id,pin,tel){
-    if(sb){const {data,error}=await sb.rpc("changer_telephone",{p_medecin_id:id,p_pin:pin,p_telephone:tel});
-      if(error)return{ok:false,error:error.message};return data;}
-    const m=demo.medecins.find(x=>x.id===id);
+  async changerTel(pin,tel){
+    if(sb)return this._rpc("changer_telephone",{p_token:SESSION_TOKEN,p_pin:pin,p_telephone:tel});
+    const m=demo.medecins.find(x=>x.id===state.user.id);
     if(!m||m.pin!==pin)return{ok:false,error:"PIN incorrect"};
     m.telephone=tel;return{ok:true};
   }
@@ -432,7 +478,7 @@ const DB = {
    3) ÉTAT + HELPERS
    ==================================================================== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={user:null,pin:null,tab:"today",sel:new Date(),cal:new Date(),gType:"Service",
+const state={user:null,tab:"today",sel:new Date(),cal:new Date(),gType:"Service",
              todayFilter:"all",dirFilter:"all",annuaire:[],monthGardes:[],dayGardes:[]};
 
 const ISO=d=>{const x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
@@ -443,87 +489,78 @@ const fmtMonth=d=>d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200);}
 
 /* session persistante (no-op silencieux dans l'aperçu sandbox) */
-function saveSession(){try{localStorage.setItem("pg_sess",JSON.stringify({user:state.user,pin:state.pin}));}catch(e){}}
-function loadSession(){try{const s=JSON.parse(localStorage.getItem("pg_sess")||"null");if(s){state.user=s.user;state.pin=s.pin;}}catch(e){}}
+function saveSession(){try{localStorage.setItem("pg_sess",JSON.stringify({user:state.user,token:SESSION_TOKEN}));}catch(e){}}
 function clearSession(){try{localStorage.removeItem("pg_sess");}catch(e){}}
 
 /* ====================================================================
-   4) AUTH UI
+   4) AUTH UI  (écran d'accueil / gate)
    ==================================================================== */
-function renderAuthSlot(){
+function setAuthed(on){
+  document.body.classList.toggle("authed",!!on);
   const slot=$("#authSlot");
-  if(state.user){
+  $("#tabMine").disabled=!on;
+  $("#tabCompte").disabled=!on;
+  if(on&&state.user){
     slot.innerHTML=`<div class="who"><span class="avatar">${initials(state.user.nom)}</span>
       <span class="nm">${state.user.nom}</span></div>`;
-    slot.querySelector(".who").onclick=logout;
-    $("#tabMine").disabled=false;
-    $("#tabCompte").disabled=false;
+    slot.querySelector(".who").onclick=()=>switchTab("compte");
   }else{
-    slot.innerHTML=`<button class="btn-login">Connexion</button>`;
-    slot.querySelector("button").onclick=()=>openAuth("login");
-    $("#tabMine").disabled=true;
-    $("#tabCompte").disabled=true;
+    slot.innerHTML="";
   }
 }
-function openAuth(mode){
-  $("#authErr").classList.remove("show");
-  const body=$("#authBody");
-  if(mode==="login"){
-    $("#authTitle").textContent="Connexion";
-    $("#authSub").textContent="Entre ton nom et ton code PIN.";
-    body.innerHTML=`
-      <div class="field"><label>Nom</label><input id="lNom" placeholder="Ton nom" autocomplete="off"></div>
-      <div class="field"><label>Code PIN</label><input id="lPin" type="password" inputmode="numeric" placeholder="••••"></div>
-      <button class="btn" id="lBtn">Se connecter</button>
-      <div class="switch-line">Pas encore de compte ? <a id="toReg">Créer un compte</a></div>`;
-    $("#lBtn").onclick=doLogin;
-    $("#lPin").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
-    $("#toReg").onclick=()=>openAuth("register");
-  }else{
-    $("#authTitle").textContent="Créer un compte";
-    $("#authSub").textContent="Tu n'auras besoin que de ton nom + PIN ensuite.";
-    body.innerHTML=`
-      <div class="field"><label>Nom complet</label><input id="rNom" placeholder="Dr Prénom Nom"></div>
-      <div class="field"><label>Spécialité</label><select id="rSpec"></select></div>
-      <div class="field"><label>Grade</label><select id="rGrade"></select></div>
-      <div class="field"><label>Téléphone</label><input id="rTel" inputmode="tel" placeholder="06 …"></div>
-      <div class="field"><label>Choisis un code PIN (4+ chiffres)</label><input id="rPin" type="password" inputmode="numeric" placeholder="••••"></div>
-      <button class="btn" id="rBtn">Créer mon compte</button>
-      <div class="switch-line">Déjà inscrit ? <a id="toLog">Se connecter</a></div>`;
-    fillSelect($("#rSpec"),SPECIALITES);fillSelect($("#rGrade"),GRADES);
-    $("#rBtn").onclick=doRegister;
-    $("#toLog").onclick=()=>openAuth("login");
-  }
-  $("#authOverlay").classList.add("show");
+function gateError(m){const e=$("#gErr");e.textContent=m;e.classList.add("show");}
+function gateClearErr(){$("#gErr").classList.remove("show");}
+function showGatePane(which){
+  gateClearErr();
+  $("#gLogin").style.display = which==="login"?"block":"none";
+  $("#gReg").style.display   = which==="register"?"block":"none";
 }
-function closeAuth(){$("#authOverlay").classList.remove("show");}
-function authError(m){const e=$("#authErr");e.textContent=m;e.classList.add("show");}
+
+function applyAuth(r){
+  // r = réponse {ok, token, id, nom, ...}
+  state.user={id:r.id,nom:r.nom,specialite:r.specialite,grade:r.grade,telephone:r.telephone};
+  SESSION_TOKEN=r.token;
+  saveSession();setAuthed(true);
+  switchTab("today");
+}
 
 async function doLogin(){
+  gateClearErr();
   const nom=$("#lNom").value.trim(),pin=$("#lPin").value.trim();
-  if(!nom||!pin)return authError("Renseigne ton nom et ton PIN.");
+  if(!nom||!pin)return gateError("Renseigne ton nom et ton PIN.");
+  $("#lBtn").disabled=true;
   const r=await DB.login(nom,pin);
-  if(!r.ok)return authError(r.error);
-  state.user={id:r.id,nom:r.nom,specialite:r.specialite,grade:r.grade,telephone:r.telephone};
-  state.pin=pin;saveSession();closeAuth();renderAuthSlot();toast("Connecté · "+r.nom);
-  refreshAll();
+  $("#lBtn").disabled=false;
+  if(!r||!r.ok)return gateError((r&&r.error)||"Erreur de connexion");
+  $("#lPin").value="";
+  applyAuth(r);toast("Connecté · "+r.nom);
 }
 async function doRegister(){
+  gateClearErr();
   const nom=$("#rNom").value.trim(),spec=$("#rSpec").value,grade=$("#rGrade").value,
-        tel=$("#rTel").value.trim(),pin=$("#rPin").value.trim();
-  if(!nom||!pin)return authError("Nom et PIN obligatoires.");
-  if(pin.length<4)return authError("Le PIN doit faire au moins 4 chiffres.");
-  const r=await DB.creer(nom,spec,grade,tel,pin);
-  if(!r.ok)return authError(r.error);
-  state.user={id:r.id,nom:r.nom,specialite:r.specialite,grade:r.grade,telephone:r.telephone};
-  state.pin=pin;saveSession();closeAuth();renderAuthSlot();toast("Compte créé · bienvenue !");
-  refreshAll();
+        tel=$("#rTel").value.trim(),pin=$("#rPin").value.trim(),invite=$("#rInvite").value.trim();
+  if(!nom||!pin)return gateError("Nom et PIN obligatoires.");
+  if(!/^[0-9]{6}$/.test(pin))return gateError("Le PIN doit faire exactement 6 chiffres.");
+  if(!invite)return gateError("Le code d'invitation est obligatoire.");
+  $("#rBtn").disabled=true;
+  const r=await DB.creer(nom,spec,grade,tel,pin,invite);
+  $("#rBtn").disabled=false;
+  if(!r||!r.ok)return gateError((r&&r.error)||"Erreur");
+  $("#rPin").value="";$("#rInvite").value="";
+  applyAuth(r);toast("Compte créé · bienvenue !");
 }
 function logout(){
   if(!confirm("Se déconnecter ?"))return;
-  state.user=null;state.pin=null;clearSession();renderAuthSlot();
-  if(state.tab==="mine"||state.tab==="compte")switchTab("today");
+  if(sb&&SESSION_TOKEN)DB.deconnexion(SESSION_TOKEN);
+  state.user=null;SESSION_TOKEN=null;clearSession();
+  setAuthed(false);showGatePane("login");
+  state.tab="today";
   toast("Déconnecté");
+}
+function onSessionExpired(){
+  state.user=null;SESSION_TOKEN=null;clearSession();
+  setAuthed(false);showGatePane("login");
+  gateError("Ta session a expiré, reconnecte-toi.");
 }
 
 /* ====================================================================
@@ -643,19 +680,19 @@ async function renderMine(){
   box.querySelectorAll(".x").forEach(b=>b.onclick=()=>delGarde(b.dataset.id));
 }
 async function addGarde(){
-  if(!state.user)return openAuth("login");
+  if(!state.user)return;
   const date=$("#gDate").value,spec=$("#gSpec").value,type=state.gType,note=$("#gNote").value.trim();
   if(!date)return toast("Choisis une date");
   $("#gAdd").disabled=true;
-  const r=await DB.inscrire(state.user.id,state.pin,date,spec,type,note);
+  const r=await DB.inscrire(date,spec,type,note);
   $("#gAdd").disabled=false;
-  if(!r.ok)return toast(r.error||"Erreur");
+  if(!r||!r.ok)return toast((r&&r.error)||"Erreur");
   $("#gNote").value="";toast("Garde ajoutée");
   renderMine();
 }
 async function delGarde(id){
-  const r=await DB.supprimer(state.user.id,state.pin,id);
-  if(!r.ok)return toast(r.error||"Erreur");
+  const r=await DB.supprimer(id);
+  if(!r||!r.ok)return toast((r&&r.error)||"Erreur");
   toast("Garde supprimée");renderMine();
 }
 
@@ -683,13 +720,12 @@ async function doChangerPin(){
   const old=$("#oldPin").value.trim(),n1=$("#newPin").value.trim(),n2=$("#newPin2").value.trim();
   const err=e=>{const el=$("#pinErr");el.textContent=e;el.classList.add("show");};
   if(!old||!n1||!n2)return err("Tous les champs sont obligatoires.");
-  if(n1.length<4)return err("Le nouveau PIN doit faire au moins 4 chiffres.");
+  if(!/^[0-9]{6}$/.test(n1))return err("Le nouveau PIN doit faire exactement 6 chiffres.");
   if(n1!==n2)return err("Les deux nouveaux PIN ne correspondent pas.");
   $("#changePinBtn").disabled=true;
-  const r=await DB.changerPin(state.user.id,old,n1);
+  const r=await DB.changerPin(old,n1);
   $("#changePinBtn").disabled=false;
-  if(!r.ok)return err(r.error||"Erreur");
-  state.pin=n1;saveSession();
+  if(!r||!r.ok)return err((r&&r.error)||"Erreur");
   $("#pinErr").classList.remove("show");
   $("#oldPin").value="";$("#newPin").value="";$("#newPin2").value="";
   toast("PIN changé avec succès ✓");
@@ -699,13 +735,13 @@ async function doChangerTel(){
   const err=e=>{const el=$("#telErr");el.textContent=e;el.classList.add("show");};
   if(!pin)return err("Confirme ton PIN.");
   $("#saveTelBtn").disabled=true;
-  const r=await DB.changerTel(state.user.id,pin,tel);
+  const r=await DB.changerTel(pin,tel);
   $("#saveTelBtn").disabled=false;
-  if(!r.ok)return err(r.error||"Erreur");
+  if(!r||!r.ok)return err((r&&r.error)||"Erreur");
   state.user.telephone=tel;saveSession();
   $("#telErr").classList.remove("show");
   $("#telPin").value="";
-  renderCompte();renderAuthSlot();
+  renderCompte();setAuthed(true);
   toast("Téléphone mis à jour ✓");
 }
 function switchTab(tab){
@@ -733,7 +769,13 @@ function bind(){
     $("#gType").querySelectorAll("button").forEach(x=>x.className=x.dataset.v===state.gType?(state.gType==='Urgences'?'on u':'on s'):'');
   });
   $("#gAdd").onclick=addGarde;
-  $("#authOverlay").onclick=e=>{if(e.target.id==="authOverlay")closeAuth();};
+  // ---- écran d'accueil (gate) ----
+  fillSelect($("#rSpec"),SPECIALITES);fillSelect($("#rGrade"),GRADES);
+  $("#lBtn").onclick=doLogin;
+  $("#rBtn").onclick=doRegister;
+  $("#toReg").onclick=()=>showGatePane("register");
+  $("#toLog").onclick=()=>showGatePane("login");
+  $("#lPin").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
   document.addEventListener("click",e=>{
     if(e.target.id==="changePinBtn")doChangerPin();
     if(e.target.id==="saveTelBtn")doChangerTel();
@@ -757,12 +799,26 @@ function initTheme(){
 function initBanner(){
   if(!CONFIGURED){
     const b=$("#banner");b.style.display="flex";
-    b.innerHTML=`<span style="font-size:16px">🧪</span><span><b>Mode démo</b> — données fictives en mémoire. Pour activer le partage réel, colle ton <b>URL</b> et ta <b>clé anon</b> Supabase en haut du fichier <b>index.html</b>, puis redéploie. (Comptes démo : n'importe quel nom de la liste, PIN <b>1234</b>.)</span>`;
+    b.innerHTML=`<span style="font-size:16px">🧪</span><span><b>Mode démo</b> — données fictives en mémoire.</span>`;
+    const gd=$("#gateDemo");if(gd){gd.style.display="block";gd.innerHTML=`🧪 <b>Mode démo</b> — connecte-toi avec : <b>Mehdi Benattahellah</b> / PIN <b>1234</b>`;}
+  }
+}
+
+async function loadSession(){
+  let s=null;try{s=JSON.parse(localStorage.getItem("pg_sess")||"null");}catch(e){}
+  if(!s||!s.token){setAuthed(false);showGatePane("login");return;}
+  // vérifier le jeton côté serveur
+  const r=await DB.verifierSession(s.token);
+  if(r&&r.ok){
+    state.user={id:r.id,nom:r.nom,specialite:r.specialite,grade:r.grade,telephone:r.telephone};
+    SESSION_TOKEN=s.token;saveSession();setAuthed(true);switchTab("today");
+  }else{
+    clearSession();setAuthed(false);showGatePane("login");
   }
 }
 
 window.addEventListener("DOMContentLoaded",()=>{
-  initTheme();initBanner();loadSession();bind();renderAuthSlot();switchTab("today");
+  initTheme();initBanner();bind();setAuthed(false);showGatePane("login");loadSession();
 });
 </script>
 </body>
