@@ -17,6 +17,7 @@
   --service:#1E6B1E; --service-soft:#E3F0E3;
   --urgences:#C8281E; --urgences-soft:#FBEAEA;
   --interne:#7A5CC0; --resident:#1E6B1E; --prof:#B07A12;
+  --garde:#4250B5; --garde-soft:#E9EBF7; --astreinte:#C2780F; --astreinte-soft:#FBF1DC; --jour:#1E6B1E; --jour-soft:#E3F0E3;
   --border:#E0E8E0; --border-2:#C8D8C8;
   --shadow:0 1px 2px rgba(14,31,14,.05),0 8px 24px -12px rgba(14,31,14,.18);
   --radius:16px; --radius-sm:11px;
@@ -28,6 +29,7 @@
   --service:#4CBF4C; --service-soft:#0F2A0F;
   --urgences:#E8615A; --urgences-soft:#2E1212;
   --interne:#A88EE8; --resident:#4CBF4C; --prof:#E0B45A;
+  --garde:#8B97E8; --garde-soft:#1A1E3A; --astreinte:#E0B45A; --astreinte-soft:#2E2410; --jour:#4CBF4C; --jour-soft:#0F2A0F;
   --border:#1E2E1E; --border-2:#2A3E2A;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 14px 30px -16px rgba(0,0,0,.6);
 }
@@ -126,6 +128,14 @@ section.show{display:block}
 .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:20px}
 .tag.service{background:var(--service-soft);color:var(--service)}
 .tag.urgences{background:var(--urgences-soft);color:var(--urgences)}
+.tag.t-garde{background:var(--garde-soft);color:var(--garde)}
+.tag.t-astreinte{background:var(--astreinte-soft);color:var(--astreinte)}
+.tag.t-jour{background:var(--jour-soft);color:var(--jour)}
+.gcard.t-garde::before{background:var(--garde)} .gcard.t-astreinte::before{background:var(--astreinte)} .gcard.t-jour::before{background:var(--jour)}
+.role-chip{display:flex;align-items:center;gap:9px;padding:9px 12px;border:1px solid var(--border);border-radius:11px;margin-bottom:7px;font-size:13.5px}
+.role-chip .rx{margin-left:auto;color:var(--urgences);font-size:15px;width:30px;height:30px;display:grid;place-items:center;border-radius:8px}
+.role-chip .rx:hover{background:var(--urgences-soft)}
+.cal-cell .dot.a{background:var(--astreinte)} .cal-cell .dot.j{background:var(--jour)}
 .grade-dot{display:inline-flex;align-items:center;gap:5px;font-weight:600}
 .grade-dot::before{content:"";width:7px;height:7px;border-radius:50%}
 .g-Interne::before{background:var(--interne)} .g-Résident::before{background:var(--resident)} .g-Professeur::before{background:var(--prof)}
@@ -151,7 +161,7 @@ section.show{display:block}
 .cal-cell.sel .cn,.cal-cell.sel .cc{color:#fff}
 .cal-cell .cn{font-weight:700;font-size:14px}
 .cal-cell .dots{margin-top:auto;display:flex;gap:3px;flex-wrap:wrap}
-.cal-cell .dot{width:6px;height:6px;border-radius:50%;background:var(--service)}
+.cal-cell .dot{width:6px;height:6px;border-radius:50%;background:var(--garde)}
 .cal-cell .dot.u{background:var(--urgences)}
 .cal-cell .cc{font-size:10px;color:var(--muted);margin-top:auto;font-weight:600}
 
@@ -174,6 +184,7 @@ section.show{display:block}
 .seg button{flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);font-weight:600;color:var(--muted);transition:.15s}
 .seg button.on.s{background:var(--service-soft);border-color:var(--service);color:var(--service)}
 .seg button.on.u{background:var(--urgences-soft);border-color:var(--urgences);color:var(--urgences)}
+.seg button.on{background:var(--primary-soft);border-color:var(--primary);color:var(--primary-ink)}
 .btn{width:100%;padding:13px;border-radius:13px;background:var(--primary);color:#fff;font-weight:700;font-size:15px;transition:.15s;box-shadow:0 8px 20px -10px var(--primary)}
 .btn:hover{filter:brightness(1.06)} .btn:disabled{opacity:.5;cursor:default}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--border);box-shadow:none}
@@ -305,21 +316,45 @@ body.authed #gate{display:none}
   <!-- MES GARDES -->
   <section id="mine">
     <div class="sec-head"><div><h2>Mes gardes</h2><div class="sub" id="mineSub"></div></div></div>
+
+    <!-- Ajouter -->
     <div class="card">
-      <div class="field"><label>Date</label><input type="date" id="gDate"></div>
-      <div class="field"><label>Spécialité</label><select id="gSpec"></select></div>
-      <div class="field"><label>Type de garde</label>
-        <div class="seg" id="gType">
-          <button class="on s" data-v="Service">Service</button>
-          <button data-v="Urgences">Urgences</button>
+      <div class="spec-title" style="margin-bottom:14px">Ajouter une garde / astreinte<span class="ln"></span></div>
+      <div class="err" id="addErr"></div>
+      <div class="field"><label>Rôle / poste</label><select id="gRole"></select></div>
+      <div class="field" id="gDateSingleWrap"><label>Date</label><input type="date" id="gDate"></div>
+      <div class="field" id="gDateRangeWrap" style="display:none">
+        <label>Période de l'astreinte (du → au)</label>
+        <div style="display:flex;gap:8px">
+          <input type="date" id="gDebut" style="flex:1">
+          <input type="date" id="gFin" style="flex:1">
         </div>
       </div>
-      <div class="field"><label>Note (optionnel)</label><input id="gNote" placeholder="Ex : 2e ligne, astreinte…"></div>
-      <button class="btn" id="gAdd">Ajouter la garde</button>
+      <div class="field"><label>Note (optionnel)</label><input id="gNote" placeholder="Ex : 2e ligne, bip 4521…"></div>
+      <button class="btn" id="gAdd">Ajouter</button>
     </div>
+
+    <!-- Liste à venir -->
     <div class="card" id="mineListCard">
-      <div class="spec-title">À venir<span class="ln"></span></div>
+      <div class="spec-title">Mes affectations à venir<span class="ln"></span></div>
       <div id="mineList"></div>
+    </div>
+
+    <!-- Gérer les rôles du service -->
+    <div class="card">
+      <div class="spec-title" style="margin-bottom:8px">Rôles de <span id="roleSpecName" style="text-transform:none;color:var(--ink)"></span><span class="ln"></span></div>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5">Les rôles définissent les postes de ton service (garde de nuit, astreinte, avis, consultations…). Ils sont partagés par tous les membres de ta spécialité.</p>
+      <div class="err" id="roleErr"></div>
+      <div id="roleList" style="margin-bottom:14px"></div>
+      <div class="field"><label>Nouveau rôle</label><input id="newRoleNom" placeholder="Ex : Garde de nuit, Avis…"></div>
+      <div class="field"><label>Type de couverture</label>
+        <div class="seg" id="newRoleType">
+          <button class="on" data-v="garde">🌙 Garde</button>
+          <button data-v="astreinte">📟 Astreinte</button>
+          <button data-v="jour">☀️ Jour</button>
+        </div>
+      </div>
+      <button class="btn ghost" id="addRoleBtn">Ajouter ce rôle</button>
     </div>
   </section>
   <!-- MON COMPTE -->
@@ -401,16 +436,27 @@ const demo = {
     {id:"m4",nom:"Pr. Hicham Bakkali",specialite:"Anesthésie-Réanimation",grade:"Professeur",telephone:"0661122334",pin:"1234"},
     {id:"m5",nom:"Salma Idrissi",specialite:"Pédiatrie",grade:"Résident",telephone:"0677889900",pin:"1234"},
   ],
-  gardes: []
+  roles: [
+    {id:"r1",specialite:"Anesthésie-Réanimation",nom:"Garde résidentielle",type:"garde"},
+    {id:"r2",specialite:"Cardiologie",nom:"Garde de nuit",type:"garde"},
+    {id:"r3",specialite:"Cardiologie",nom:"Astreinte service",type:"astreinte"},
+    {id:"r4",specialite:"Cardiologie",nom:"Avis",type:"jour"},
+    {id:"r5",specialite:"Cardiologie",nom:"Consultations",type:"jour"},
+    {id:"r6",specialite:"Pédiatrie",nom:"Garde",type:"garde"},
+  ],
+  affectations: []
 };
 (function seedDemo(){
   const t=new Date(); const iso=d=>d.toISOString().slice(0,10);
-  const mk=(off,med,spec,type)=>{const d=new Date(t);d.setDate(t.getDate()+off);
-    demo.gardes.push({id:"g"+demo.gardes.length,medecin_id:med,date:iso(d),specialite:spec,type_garde:type,note:null});};
-  mk(0,"m1","Anesthésie-Réanimation","Service"); mk(0,"m3","Urgences","Urgences"); mk(0,"m2","Cardiologie","Service");
-  mk(1,"m4","Anesthésie-Réanimation","Service"); mk(1,"m5","Pédiatrie","Urgences");
-  mk(2,"m1","Anesthésie-Réanimation","Urgences"); mk(3,"m2","Cardiologie","Service");
-  mk(-1,"m3","Urgences","Service");
+  const day=off=>{const d=new Date(t);d.setDate(t.getDate()+off);return iso(d);};
+  const mk=(med,role,d1,d2,note)=>{const r=demo.roles.find(x=>x.id===role);
+    demo.affectations.push({id:"a"+demo.affectations.length,medecin_id:med,specialite:r.specialite,role_id:role,date_debut:d1,date_fin:d2||d1,note:note||null});};
+  mk("m1","r1",day(0),day(0));
+  mk("m2","r2",day(0),day(0));
+  mk("m4","r3",day(-1),day(3),"Astreinte semaine");
+  mk("m2","r4",day(0),day(0));
+  mk("m5","r6",day(1),day(1));
+  mk("m2","r5",day(0),day(0));
 })();
 
 let SESSION_TOKEN = null;  // jeton de session (jamais le PIN)
@@ -452,22 +498,34 @@ const DB = {
     if(sb){const d=await this._rpc("get_annuaire",{p_token:SESSION_TOKEN});return Array.isArray(d)?d:[];}
     return [...demo.medecins].map(({pin,...r})=>r).sort((a,b)=>a.nom.localeCompare(b.nom));
   },
-  async gardes(start,end){
-    if(sb){const d=await this._rpc("get_gardes",{p_token:SESSION_TOKEN,p_start:start,p_end:end});return Array.isArray(d)?d:[];}
-    return demo.gardes.filter(g=>g.date>=start&&g.date<=end).map(g=>{
-      const m=demo.medecins.find(x=>x.id===g.medecin_id)||{};
-      return {...g,nom:m.nom,grade:m.grade,telephone:m.telephone};});
+  async roles(){
+    if(sb){const d=await this._rpc("get_roles",{p_token:SESSION_TOKEN,p_specialite:state.user.specialite});return Array.isArray(d)?d:[];}
+    return demo.roles.filter(r=>r.specialite===state.user.specialite);
   },
-  async inscrire(date,spec,type,note){
-    if(sb)return this._rpc("inscrire_garde",{p_token:SESSION_TOKEN,p_date:date,p_specialite:spec,p_type:type,p_note:note});
-    const id=state.user.id;
-    const ex=demo.gardes.find(g=>g.medecin_id===id&&g.date===date&&g.specialite===spec);
-    if(ex){ex.type_garde=type;ex.note=note;}else demo.gardes.push({id:"g"+Date.now(),medecin_id:id,date,specialite:spec,type_garde:type,note});
-    return{ok:true};
+  async ajouterRole(nom,type){
+    if(sb)return this._rpc("ajouter_role",{p_token:SESSION_TOKEN,p_nom:nom,p_type:type});
+    if(demo.roles.some(r=>r.specialite===state.user.specialite&&r.nom.toLowerCase()===nom.toLowerCase()))return{ok:false,error:"Ce rôle existe déjà"};
+    demo.roles.push({id:"r"+Date.now(),specialite:state.user.specialite,nom,type});return{ok:true};
   },
-  async supprimer(gid){
-    if(sb)return this._rpc("supprimer_garde",{p_token:SESSION_TOKEN,p_garde_id:gid});
-    demo.gardes=demo.gardes.filter(g=>!(g.id===gid&&g.medecin_id===state.user.id));return{ok:true};
+  async supprimerRole(id){
+    if(sb)return this._rpc("supprimer_role",{p_token:SESSION_TOKEN,p_role_id:id});
+    if(demo.affectations.some(a=>a.role_id===id))return{ok:false,error:"Des affectations utilisent ce rôle"};
+    demo.roles=demo.roles.filter(r=>r.id!==id);return{ok:true};
+  },
+  async affectations(start,end){
+    if(sb){const d=await this._rpc("get_affectations",{p_token:SESSION_TOKEN,p_start:start,p_end:end});return Array.isArray(d)?d:[];}
+    return demo.affectations.filter(a=>!(a.date_fin<start||a.date_debut>end)).map(a=>{
+      const m=demo.medecins.find(x=>x.id===a.medecin_id)||{};
+      const r=demo.roles.find(x=>x.id===a.role_id)||{};
+      return {...a,nom:m.nom,grade:m.grade,telephone:m.telephone,role_nom:r.nom,role_type:r.type};});
+  },
+  async inscrire(roleId,debut,fin,note){
+    if(sb)return this._rpc("inscrire_affectation",{p_token:SESSION_TOKEN,p_role_id:roleId,p_debut:debut,p_fin:fin,p_note:note});
+    demo.affectations.push({id:"a"+Date.now(),medecin_id:state.user.id,specialite:state.user.specialite,role_id:roleId,date_debut:debut,date_fin:fin,note});return{ok:true};
+  },
+  async supprimer(id){
+    if(sb)return this._rpc("supprimer_affectation",{p_token:SESSION_TOKEN,p_id:id});
+    demo.affectations=demo.affectations.filter(a=>!(a.id===id&&a.medecin_id===state.user.id));return{ok:true};
   },
   async changerPin(oldPin,newPin){
     if(sb)return this._rpc("changer_pin",{p_token:SESSION_TOKEN,p_old_pin:oldPin,p_new_pin:newPin});
@@ -493,10 +551,13 @@ const DB = {
    3) ÉTAT + HELPERS
    ==================================================================== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={user:null,tab:"today",sel:new Date(),cal:new Date(),gType:"Service",
+const state={user:null,tab:"today",sel:new Date(),cal:new Date(),newRoleType:"garde",myRoles:[],
              todayFilter:"all",dirFilter:"all",annuaire:[],monthGardes:[],dayGardes:[]};
 
 const ISO=d=>{const x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
+const daysBetween=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5);
+const roleIcon=t=>t==="garde"?"🌙":t==="astreinte"?"📟":"☀️";
+const TORDER={garde:0,astreinte:1,jour:2};
 const initials=n=>n.replace(/^(Pr\.?|Dr\.?)\s*/i,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
 const fmtDay=d=>d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
 const fmtMonth=d=>d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
@@ -589,8 +650,7 @@ function gradeSpan(g){return `<span class="grade-dot g-${g}">${g}</span>`;}
 async function renderToday(){
   $("#dLabel").textContent=fmtDay(state.sel);
   const iso=ISO(state.sel);
-  state.dayGardes=await DB.gardes(iso,iso);
-  // pills de filtre spécialité
+  state.dayGardes=await DB.affectations(iso,iso);
   const specs=[...new Set(state.dayGardes.map(g=>g.specialite))].sort();
   const pills=$("#todayPills");
   pills.innerHTML=`<button class="pill ${state.todayFilter==='all'?'on':''}" data-f="all">Toutes</button>`+
@@ -601,22 +661,26 @@ async function renderToday(){
   if(state.todayFilter!=='all')list=list.filter(g=>g.specialite===state.todayFilter);
   const box=$("#todayList");
   if(!list.length){box.innerHTML=emptyState("Aucune garde ce jour");return;}
-  // groupé par spécialité
   const groups={};list.forEach(g=>{(groups[g.specialite]=groups[g.specialite]||[]).push(g);});
   box.innerHTML=Object.keys(groups).sort().map(spec=>`
     <div class="spec-group">
       <div class="spec-title">${spec}<span class="ln"></span></div>
-      ${groups[spec].sort((a,b)=>(a.type_garde>b.type_garde?1:-1)).map(gCard).join('')}
+      ${groups[spec].sort((a,b)=>(TORDER[a.role_type]-TORDER[b.role_type])||a.role_nom.localeCompare(b.role_nom)).map(affCard).join('')}
     </div>`).join('');
 }
-function gCard(g){
-  const urg=g.type_garde==='Urgences';
-  const tel=g.telephone?`<a class="callbtn" href="tel:${g.telephone}">📞</a>`:`<span class="callbtn off">📞</span>`;
-  return `<div class="gcard ${urg?'urg':''}">
-    <div class="av">${initials(g.nom)}</div>
+function affCard(a){
+  const tel=a.telephone?`<a class="callbtn" href="tel:${a.telephone}">📞</a>`:`<span class="callbtn off">📞</span>`;
+  let hint='';
+  if(a.date_debut!==a.date_fin){
+    const total=daysBetween(a.date_debut,a.date_fin)+1;
+    const idx=daysBetween(a.date_debut,ISO(state.sel))+1;
+    hint=`<span class="tag" style="background:var(--surface-2);color:var(--faint)">J${idx}/${total}</span>`;
+  }
+  return `<div class="gcard t-${a.role_type}">
+    <div class="av">${initials(a.nom)}</div>
     <div class="info">
-      <div class="nm">${g.nom}</div>
-      <div class="meta">${gradeSpan(g.grade)}<span class="tag ${urg?'urgences':'service'}">${g.type_garde}</span>${g.note?`· ${g.note}`:''}</div>
+      <div class="nm">${a.nom}</div>
+      <div class="meta">${gradeSpan(a.grade)}<span class="tag t-${a.role_type}">${roleIcon(a.role_type)} ${a.role_nom}</span>${hint}${a.note?`· ${a.note}`:''}</div>
     </div>${tel}</div>`;
 }
 function emptyState(t){return `<div class="empty"><div class="ic">🌙</div><p>${t}</p></div>`;}
@@ -626,17 +690,17 @@ async function renderCal(){
   const y=state.cal.getFullYear(),m=state.cal.getMonth();
   $("#mLabel").textContent=fmtMonth(state.cal);
   const first=new Date(y,m,1),last=new Date(y,m+1,0);
-  state.monthGardes=await DB.gardes(ISO(first),ISO(last));
-  const byDate={};state.monthGardes.forEach(g=>{(byDate[g.date]=byDate[g.date]||[]).push(g);});
+  state.monthGardes=await DB.affectations(ISO(first),ISO(last));
   const dows=["L","M","M","J","V","S","D"];
   let html=dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
   let start=(first.getDay()+6)%7; // lundi=0
   for(let i=0;i<start;i++)html+=`<div class="cal-cell blank"></div>`;
   const todayIso=ISO(new Date());
   for(let day=1;day<=last.getDate();day++){
-    const d=new Date(y,m,day),iso=ISO(d),gs=byDate[iso]||[];
-    const hasU=gs.some(g=>g.type_garde==='Urgences'),hasS=gs.some(g=>g.type_garde==='Service');
-    const dots=(hasS?`<span class="dot"></span>`:'')+(hasU?`<span class="dot u"></span>`:'');
+    const d=new Date(y,m,day),iso=ISO(d);
+    const gs=state.monthGardes.filter(a=>a.date_debut<=iso&&a.date_fin>=iso);
+    const hasG=gs.some(a=>a.role_type==='garde'),hasA=gs.some(a=>a.role_type==='astreinte'),hasJ=gs.some(a=>a.role_type==='jour');
+    const dots=(hasG?`<span class="dot"></span>`:'')+(hasA?`<span class="dot a"></span>`:'')+(hasJ?`<span class="dot j"></span>`:'');
     html+=`<div class="cal-cell ${iso===todayIso?'today':''} ${iso===ISO(state.sel)?'sel':''}" data-iso="${iso}">
       <span class="cn">${day}</span>
       ${gs.length?`<span class="cc">${gs.length}</span><div class="dots">${dots}</div>`:''}
@@ -678,37 +742,101 @@ function applyDirFilter(){
 async function renderMine(){
   if(!state.user)return;
   $("#mineSub").textContent=state.user.nom+" · "+state.user.specialite;
-  fillSelect($("#gSpec"),SPECIALITES,state.user.specialite);
+  $("#roleSpecName").textContent=state.user.specialite;
   if(!$("#gDate").value)$("#gDate").value=ISO(state.sel);
+  // charger les rôles de ma spécialité
+  state.myRoles=await DB.roles();
+  renderRoleSelect();
+  renderRoleList();
+  // mes affectations à venir
   const today=ISO(new Date());
-  const all=await DB.gardes(today,"2100-01-01");
-  const mine=all.filter(g=>g.medecin_id===state.user.id).sort((a,b)=>a.date.localeCompare(b.date));
+  const all=await DB.affectations(today,"2100-01-01");
+  const mine=all.filter(a=>a.medecin_id===state.user.id).sort((a,b)=>a.date_debut.localeCompare(b.date_debut));
   const box=$("#mineList");
-  if(!mine.length){box.innerHTML=`<p style="color:var(--faint);font-size:13.5px;padding:6px 0">Aucune garde à venir.</p>`;return;}
-  box.innerHTML=mine.map(g=>{
-    const d=new Date(g.date+"T00:00:00");
+  if(!mine.length){box.innerHTML=`<p style="color:var(--faint);font-size:13.5px;padding:6px 0">Aucune affectation à venir.</p>`;return;}
+  box.innerHTML=mine.map(a=>{
+    const d1=new Date(a.date_debut+"T00:00:00");
+    const f=d=>d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+    let dateLbl=f(d1);
+    if(a.date_debut!==a.date_fin){const d2=new Date(a.date_fin+"T00:00:00");dateLbl=`${f(d1)} → ${f(d2)}`;}
     return `<div class="mg-row">
-      <div><div class="d">${d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</div>
-      <div class="meta" style="font-size:12.5px;color:var(--muted)">${g.specialite} · <span class="tag ${g.type_garde==='Urgences'?'urgences':'service'}">${g.type_garde}</span></div></div>
-      <button class="x" data-id="${g.id}">✕</button></div>`;
+      <div><div class="d">${dateLbl}</div>
+      <div class="meta" style="font-size:12.5px;color:var(--muted)"><span class="tag t-${a.role_type}">${roleIcon(a.role_type)} ${a.role_nom}</span>${a.note?` · ${a.note}`:''}</div></div>
+      <button class="x" data-id="${a.id}">✕</button></div>`;
   }).join('');
   box.querySelectorAll(".x").forEach(b=>b.onclick=()=>delGarde(b.dataset.id));
 }
+function renderRoleSelect(){
+  const sel=$("#gRole");
+  if(!state.myRoles.length){
+    sel.innerHTML=`<option value="">— Crée d'abord un rôle ci-dessous —</option>`;
+  }else{
+    sel.innerHTML=state.myRoles.map(r=>`<option value="${r.id}" data-type="${r.type}">${roleIcon(r.type)} ${r.nom}</option>`).join('');
+  }
+  toggleDateMode();
+}
+function toggleDateMode(){
+  const opt=$("#gRole").selectedOptions[0];
+  const type=opt?opt.getAttribute("data-type"):null;
+  const astreinte=type==="astreinte";
+  $("#gDateSingleWrap").style.display=astreinte?"none":"block";
+  $("#gDateRangeWrap").style.display=astreinte?"block":"none";
+  if(astreinte){if(!$("#gDebut").value)$("#gDebut").value=ISO(state.sel);if(!$("#gFin").value)$("#gFin").value=ISO(state.sel);}
+}
+function renderRoleList(){
+  const box=$("#roleList");
+  if(!state.myRoles.length){box.innerHTML=`<p style="color:var(--faint);font-size:12.5px">Aucun rôle défini pour ${state.user.specialite}.</p>`;return;}
+  box.innerHTML=state.myRoles.map(r=>`<div class="role-chip">
+    <span class="tag t-${r.type}">${roleIcon(r.type)} ${r.type}</span>
+    <span style="font-weight:600">${r.nom}</span>
+    <span class="rx" data-rid="${r.id}">✕</span></div>`).join('');
+  box.querySelectorAll(".rx").forEach(b=>b.onclick=()=>delRole(b.dataset.rid));
+}
 async function addGarde(){
   if(!state.user)return;
-  const date=$("#gDate").value,spec=$("#gSpec").value,type=state.gType,note=$("#gNote").value.trim();
-  if(!date)return toast("Choisis une date");
+  const err=e=>{const el=$("#addErr");el.textContent=e;el.classList.add("show");};
+  $("#addErr").classList.remove("show");
+  const opt=$("#gRole").selectedOptions[0];
+  if(!opt||!opt.value)return err("Choisis un rôle (ou crée-en un d'abord).");
+  const roleId=opt.value,type=opt.getAttribute("data-type"),note=$("#gNote").value.trim();
+  let debut,fin;
+  if(type==="astreinte"){
+    debut=$("#gDebut").value;fin=$("#gFin").value;
+    if(!debut||!fin)return err("Renseigne le début et la fin de l'astreinte.");
+    if(fin<debut)return err("La date de fin doit être après le début.");
+  }else{
+    debut=$("#gDate").value;fin=debut;
+    if(!debut)return err("Choisis une date.");
+  }
   $("#gAdd").disabled=true;
-  const r=await DB.inscrire(date,spec,type,note);
+  const r=await DB.inscrire(roleId,debut,fin,note);
   $("#gAdd").disabled=false;
-  if(!r||!r.ok)return toast((r&&r.error)||"Erreur");
-  $("#gNote").value="";toast("Garde ajoutée");
+  if(!r||!r.ok)return err((r&&r.error)||"Erreur");
+  $("#gNote").value="";toast("Affectation ajoutée");
   renderMine();
 }
 async function delGarde(id){
   const r=await DB.supprimer(id);
   if(!r||!r.ok)return toast((r&&r.error)||"Erreur");
-  toast("Garde supprimée");renderMine();
+  toast("Affectation supprimée");renderMine();
+}
+async function addRole(){
+  const err=e=>{const el=$("#roleErr");el.textContent=e;el.classList.add("show");};
+  $("#roleErr").classList.remove("show");
+  const nom=$("#newRoleNom").value.trim(),type=state.newRoleType;
+  if(nom.length<2)return err("Donne un nom au rôle.");
+  $("#addRoleBtn").disabled=true;
+  const r=await DB.ajouterRole(nom,type);
+  $("#addRoleBtn").disabled=false;
+  if(!r||!r.ok)return err((r&&r.error)||"Erreur");
+  $("#newRoleNom").value="";toast("Rôle ajouté");
+  renderMine();
+}
+async function delRole(id){
+  if(!confirm("Supprimer ce rôle ?"))return;
+  const r=await DB.supprimerRole(id);
+  if(!r||!r.ok)return toast((r&&r.error)||"Erreur");
+  toast("Rôle supprimé");renderMine();
 }
 
 /* ---- MON COMPTE ---- */
@@ -795,9 +923,10 @@ function bind(){
   $("#mPrev").onclick=()=>{state.cal.setMonth(state.cal.getMonth()-1);state.cal=new Date(state.cal);renderCal();};
   $("#mNext").onclick=()=>{state.cal.setMonth(state.cal.getMonth()+1);state.cal=new Date(state.cal);renderCal();};
   $("#dirSearch").oninput=applyDirFilter;
-  $("#gType").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    state.gType=b.dataset.v;
-    $("#gType").querySelectorAll("button").forEach(x=>x.className=x.dataset.v===state.gType?(state.gType==='Urgences'?'on u':'on s'):'');
+  $("#gRole").onchange=toggleDateMode;
+  $("#newRoleType").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    state.newRoleType=b.dataset.v;
+    $("#newRoleType").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.v===state.newRoleType));
   });
   $("#gAdd").onclick=addGarde;
   // ---- écran d'accueil (gate) ----
@@ -809,6 +938,7 @@ function bind(){
   $("#lPin").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
   document.addEventListener("click",e=>{
     if(e.target.id==="changePinBtn")doChangerPin();
+    if(e.target.id==="addRoleBtn")addRole();
     if(e.target.id==="saveSpecBtn")doChangerSpec();
     if(e.target.id==="saveTelBtn")doChangerTel();
     if(e.target.id==="logoutBtn")logout();
