@@ -991,7 +991,7 @@ function affCard(a,showSpec){
     <div class="av">${initials(a.nom)}</div>
     <div class="info">
       <div class="nm">${a.nom}</div>
-      <div class="meta">${gradeSpan(a.grade)}<span class="tag t-${a.role_type}">${roleIcon(a.role_type)}${a.role_nom==="Garde"||a.role_nom==="Gardes"?"Service":a.role_nom}</span>${specLine}${hint}${a.note?`<span style="color:var(--faint)">· ${a.note}</span>`:''}</div>
+      <div class="meta">${gradeSpan(a.grade)}<span class="tag t-${a.role_type}">${roleIcon(a.role_type)}${/^gardes?$/i.test(a.role_nom)?"Service":a.role_nom}</span>${specLine}${hint}${a.note?`<span style="color:var(--faint)">· ${a.note}</span>`:''}</div>
     </div>${tel}</div>`;
 }
 function emptyState(t){return `<div class="empty"><div class="ic"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 15h.01M12 15h.01M16 15h.01" stroke-linecap="round"/></svg></div><p>${t}</p></div>`;}
@@ -1103,7 +1103,7 @@ async function renderMineList(){
     return `<div class="mg-row">
       <div class="pin t-${a.role_type}">${roleIcon(a.role_type)}</div>
       <div><div class="d">${d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'long'})}${range}</div>
-      <div class="s">${a.role_nom==="Garde"||a.role_nom==="Gardes"?"Service":a.role_nom}${a.note?` · ${a.note}`:''}</div></div>
+      <div class="s">${/^gardes?$/i.test(a.role_nom)?"Service":a.role_nom}${a.note?` · ${a.note}`:''}</div></div>
       <button class="x" data-id="${a.id}" aria-label="Supprimer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
     </div>`;
   }).join(''):`<div class="empty"><p style="margin-top:6px">Tu n'as pas encore de garde programmée.</p></div>`;
