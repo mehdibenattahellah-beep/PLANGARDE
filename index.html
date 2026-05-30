@@ -458,7 +458,7 @@ body.authed #gate{display:none}
       </div>
       <button class="today-btn" id="dTodayBtn">Revenir à aujourd'hui</button>
       <div class="summary">
-        <div class="stat g"><div class="n" id="statG">0</div><div class="l">Gardes</div></div>
+        <div class="stat g"><div class="n" id="statG">0</div><div class="l">Service</div></div>
         <div class="stat u"><div class="n" id="statU">0</div><div class="l">Urgences</div></div>
         <div class="stat a"><div class="n" id="statA">0</div><div class="l">Astreintes</div></div>
       </div>
@@ -844,7 +844,7 @@ const state={
 const ISO=d=>{const x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
 const daysBetween=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5);
 const TORDER={garde:0,urgences:1,astreinte:2,jour:3};
-const TYPE_LABEL={garde:"Gardes",urgences:"Urgences",astreinte:"Astreintes",jour:"Jour / consultations"};
+const TYPE_LABEL={garde:"Service",urgences:"Urgences",astreinte:"Astreintes",jour:"Jour / consultations"};
 const initials=n=>n.replace(/^(Pr\.?|Dr\.?)\s*/i,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
 const fmtDay=d=>d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
 const fmtDow=d=>d.toLocaleDateString('fr-FR',{weekday:'long'});
